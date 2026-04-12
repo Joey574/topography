@@ -1,8 +1,9 @@
 package dataset
 
 const initLog = "[DATASET] [i] Initialized dataset"
-const genLog = "[DATASET] [i] Generating response data: resolution='%d', lod_level='%.2f', vertices='%d'"
-const genCompLog = "[DATASET] [i] Completed request: resolution='%d', lod_level='%.2f', vertices='%d'"
+const genLog = "[DATASET] [i] Generating response: resolution='%d', vertices='%d'"
+const streamLog = "[DATASET] [i] Streaming response: resolution='%d', vertices='%d'"
+const genCompLog = "[DATASET] [i] Completed request: resolution='%d', vertices='%d'"
 
 const genErr = "[DATASET] [!] Error : %w"
 

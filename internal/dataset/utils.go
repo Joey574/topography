@@ -12,72 +12,28 @@ import (
 	"github.com/x448/float16"
 )
 
-type Location struct {
-	Name   string
-	Lat    float64
-	Lng    float64
-	Height float32
-}
-
-// Debug function primarily used for verifying some famous landmarks
-func (d *Dataset) CommonElevations() []Location {
-
-	locations := []Location{
-		{
-			Name: "Mount Everest",
-			Lat:  27.9882,
-			Lng:  86.9254,
-		},
-		{
-			Name: "Mariana Trench",
-			Lat:  11.3733,
-			Lng:  142.5917,
-		},
-		{
-			Name: "Grand Canyon",
-			Lat:  36.1,
-			Lng:  -112.1,
-		},
-	}
-
-	for i := range locations {
-		locations[i].Height = d.ElevationRead(locations[i].Lat, locations[i].Lng)
-	}
-
-	return locations
-}
-
-// Reads data in bulk from RAM into the write specification as a []float32
-//
-// Requires:
-//
-// latStart < latEnd
-//
-// lonStart < lonEnd
-//
-// d.data must not be nil
-func (d *Dataset) bulkElevationReadFromRAM(latStart, lonStart, latEnd, lonEnd float64, resolution int, w io.Writer) error {
+func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 	if d.data == nil {
 		return fmt.Errorf("") // TODO
 	}
 
-	dlat := (latEnd - latStart) / float64(resolution)
-	dlng := (lonEnd - lonStart) / float64(resolution)
+	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution)
+	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(req.Resolution)
 
 	// invalid parameters
 	if dlat < 0 || dlng < 0 {
-		return invalidRequest(latStart, latEnd, lonStart, lonEnd)
+		return invalidRequest(req)
 	}
 
 	scratch := make([]byte, 4)
 
-	for i := 0; i <= resolution; i++ {
+	for i := 0; i <= req.Resolution; i++ {
 
 		// flip latitude for THREE js
-		lat := latStart + float64(resolution-i)*dlat
+		lat := req.LatitudeStart + float64(req.Resolution-i)*dlat
 
-		for j := 0; j <= resolution; j++ {
-			lon := lonStart + float64(j)*dlng
+		for j := 0; j <= req.Resolution; j++ {
+			lon := req.LongitudeStart + float64(j)*dlng
 
 			px, py := d.toPixel(lat, lon)
 			jdx := (py*d.rasterX + px) * d.bytesPerPoint()
@@ -99,24 +55,21 @@ func (d *Dataset) bulkElevationReadFromRAM(latStart, lonStart, latEnd, lonEnd fl
 	return nil
 }
 
-func (d *Dataset) bulkElevationReadFromDisk(latStart, lonStart, latEnd, lonEnd float64, resolution int, w io.Writer) error {
-	if d.data == nil {
+func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
+	if d.data != nil {
 		return fmt.Errorf("") // TODO
 	}
 
-	dlat := latEnd - latStart
-	dlng := lonEnd - lonStart
+	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution)
+	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(req.Resolution)
 
 	// invalid parameters
 	if dlat < 0 || dlng < 0 {
-		return invalidRequest(latStart, latEnd, lonStart, lonEnd)
+		return invalidRequest(req)
 	}
 
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-
-	lat_inc := dlat / float64(resolution)
-	lng_inc := dlng / float64(resolution)
 
 	// longitude has a total range of 360 degrees
 	// first we scale to [0,1] by dividing by 360
@@ -129,9 +82,9 @@ func (d *Dataset) bulkElevationReadFromDisk(latStart, lonStart, latEnd, lonEnd f
 	scratch := make([]byte, 4)
 
 	idx := 0
-	for i := 0; i <= resolution; i++ {
-		lat := latStart + float64(resolution-i)*lat_inc
-		px, py := d.toPixel(lat, lonStart)
+	for i := 0; i <= req.Resolution; i++ {
+		lat := req.LatitudeStart + float64(req.Resolution-i)*dlat
+		px, py := d.toPixel(lat, req.LongitudeStart)
 		err := d.ds.AdviseRead(gdal.Read, px, py, lng_points, 1, lng_points, 1, gdal.Float32, 1, []int{1}, []string{})
 		if err != nil {
 			log.FLog(genErr, err)
@@ -152,8 +105,8 @@ func (d *Dataset) bulkElevationReadFromDisk(latStart, lonStart, latEnd, lonEnd f
 			floats := unsafe.Slice(ptr, lng_points)
 
 			// sample points from buffer into set
-			for j := 0; j <= resolution; j++ {
-				lon := lonStart + float64(j)*lng_inc
+			for j := 0; j <= req.Resolution; j++ {
+				lon := req.LongitudeStart + float64(j)*dlng
 				pxlng, _ := d.toPixel(lat, lon)
 				offset := pxlng - px
 
@@ -170,8 +123,8 @@ func (d *Dataset) bulkElevationReadFromDisk(latStart, lonStart, latEnd, lonEnd f
 			floats := unsafe.Slice(ptr, lng_points)
 
 			// sample points from buffer into set
-			for j := 0; j <= resolution; j++ {
-				lon := lonStart + float64(j)*lng_inc
+			for j := 0; j <= req.Resolution; j++ {
+				lon := req.LongitudeStart + float64(j)*dlng
 				pxlng, _ := d.toPixel(lat, lon)
 				offset := pxlng - px
 
@@ -193,4 +146,40 @@ func (d *Dataset) bulkElevationReadFromDisk(latStart, lonStart, latEnd, lonEnd f
 	}
 
 	return nil
+
+}
+
+func (d *Dataset) loadIntoRAM() error {
+	err := d.ds.AdviseRead(gdal.Read, 0, 0, d.rasterX, d.rasterY, d.rasterX, d.rasterY, d.dtype, 1, []int{1}, nil)
+	if err != nil {
+		return err
+	}
+
+	d.data = make([]byte, d.rasterX*d.rasterY*d.bytesPerPoint())
+	err = d.ds.BasicRead(0, 0, d.rasterX, d.rasterY, []int{1}, d.data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dataset) toPixel(lat, lon float64) (px, py int) {
+	fpx := d.igt[0] + lon*d.igt[1] + lat*d.igt[2]
+	fpy := d.igt[3] + lon*d.igt[4] + lat*d.igt[5]
+
+	px = max(min(int(fpx), d.rasterX-1), 0)
+	py = max(min(int(fpy), d.rasterY-1), 0)
+	return px, py
+}
+
+func (d *Dataset) bytesPerPoint() int {
+	switch d.dtype {
+	case _FLOAT_16:
+		return 2
+	case _FLOAT_32:
+		return 4
+	default:
+		return 0
+	}
 }

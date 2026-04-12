@@ -24,7 +24,7 @@ type Args struct {
 	Log  string `short:"l" long:"log"`
 
 	Server bool `long:"server"`
-	RAM    bool `long:"ram"`
+	Disk   bool `long:"disk"`
 
 	Render  bool   `long:"render"`
 	Samples int    `long:"samples" default:"1024"`
@@ -42,8 +42,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if args.Render && args.Server {
-		log.Fatalln("pick either server OR render")
+	if (args.Render && args.Server) || (!args.Render && !args.Server) {
+		log.Fatalln("MUST pick server OR render")
 	}
 
 	if args.Log != "" {
@@ -55,7 +55,7 @@ func main() {
 		logger.SetLogFile(f)
 	}
 
-	d, err := dataset.NewDataset(args.File, args.RAM)
+	d, err := dataset.NewDataset(args.File, !args.Disk)
 	if err != nil {
 		log.Fatalln(err)
 	}

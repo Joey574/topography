@@ -7,6 +7,10 @@ BUILDFLAGS="-tags=netgo,osusergo -buildmode=pie -buildvcs=false -trimpath"
 
 OUTPUT="./bin/topography"
 
+minify -q ./src/style.css -o ./static/css/style.css
+minify -q ./src/script.js -o ./static/js/script.js
+minify -q ./src/index.html -o ./templates/index.html
+
 go build $BUILDFLAGS -ldflags="$LDFLAGS" -gcflags="$GCFLAGS" -o $OUTPUT
 strip $OUTPUT
 

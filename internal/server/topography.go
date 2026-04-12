@@ -27,7 +27,7 @@ func (h *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 			return
 		}
 
-		log.FLog(topReqLog, req.Resolution, req.LODLevel)
+		log.FLog(topReqLog, req.Resolution)
 		// res, err = d.GenerateResponse(req)
 		// if err != nil {
 		// 	switch err {
@@ -45,7 +45,7 @@ func (h *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 		// }
 
 		w.Header().Set("Content-Type", "application/octet-stream")
-		if err = d.StreamResponse(req, w); err != nil {
+		if err = d.StreamResponse(req, w, true); err != nil {
 			// TODO : internal server error
 			return
 		}

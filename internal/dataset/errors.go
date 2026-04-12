@@ -17,8 +17,13 @@ type invalidRequestErr struct {
 
 type internalErrorErr struct{}
 
-func invalidRequest(lats, late, lngs, lnge float64) *invalidRequestErr {
-	return &invalidRequestErr{LatStart: lats, LatEnd: late, LngStart: lngs, LngEnd: lnge}
+func invalidRequest(req *Request) *invalidRequestErr {
+	return &invalidRequestErr{
+		LatStart: req.LatitudeStart,
+		LatEnd:   req.LatitudeEnd,
+		LngStart: req.LongitudeStart,
+		LngEnd:   req.LongitudeEnd,
+	}
 }
 
 func internalError() *internalErrorErr {

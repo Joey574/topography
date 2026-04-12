@@ -6,8 +6,11 @@ import (
 )
 
 type Request struct {
-	Resolution int     `json:"resolution"`
-	LODLevel   float64 `json:"lod_level"`
+	Resolution     int     `json:"resolution"`
+	LatitudeStart  float64 `json:"latitude_start"`
+	LatitudeEnd    float64 `json:"latitude_end"`
+	LongitudeStart float64 `json:"longitude_start"`
+	LongitudeEnd   float64 `json:"longitude_end"`
 }
 
 func NewRequest(r io.Reader) (*Request, error) {
