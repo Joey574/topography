@@ -1,0 +1,15 @@
+module topology/v2
+
+go 1.26.1
+
+require (
+	github.com/jessevdk/go-flags v1.6.1
+	github.com/seerai/godal v0.8.1
+)
+
+require (
+	github.com/fogleman/pt v0.0.0-20170619012416-6fa0015c2178
+	github.com/x448/float16 v0.8.4
+)
+
+require golang.org/x/sys v0.21.0 // indirect; indirec
