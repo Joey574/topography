@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func (h *Server) StaticGetHandler(f embed.FS) http.Handler {
+func (s *Server) StaticGetHandler(f embed.FS) http.Handler {
 	sub, _ := fs.Sub(f, "static")
 	fileserver := http.StripPrefix("/static/", http.FileServer(http.FS(sub)))
 

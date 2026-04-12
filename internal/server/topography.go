@@ -6,7 +6,7 @@ import (
 	"topology/v2/internal/log"
 )
 
-func (h *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
+func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			// TODO : method not allowed
