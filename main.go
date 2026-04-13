@@ -24,11 +24,15 @@ type Args struct {
 	Log  string `short:"l" long:"log"`
 
 	Server bool `long:"server"`
+	Render bool `long:"render"`
 	Disk   bool `long:"disk"`
 
-	Render  bool   `long:"render"`
-	Samples int    `long:"samples" default:"1024"`
-	Output  string `short:"o" long:"output" default:"./render.stl"`
+	Samples   int     `short:"s" long:"samples" default:"32768"`
+	Width     int     `long:"width" default:"800"`
+	Height    int     `long:"height" default:"800"`
+	Latitude  float64 `long:"lat" default:"0"`
+	Longitude float64 `long:"lng" default:"0"`
+	Output    string  `short:"o" long:"output" default:"./_renders/"`
 }
 
 func main() {
@@ -66,6 +70,14 @@ func main() {
 	}
 
 	if args.Render {
-		renderer.Render(d, args.Samples)
+		renderer.Render(
+			d,
+			args.Width,
+			args.Height,
+			args.Samples,
+			args.Latitude,
+			args.Longitude,
+			args.Output,
+		)
 	}
 }

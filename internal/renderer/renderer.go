@@ -1,13 +1,15 @@
 package renderer
 
 import (
+	"log"
 	"math"
+	"os"
 	"topology/v2/internal/dataset"
 
 	"github.com/fogleman/pt/pt"
 )
 
-type DisplacedSphere struct {
+type Sphere struct {
 	Radius    float64
 	Data      []float32
 	Width     int
@@ -16,8 +18,7 @@ type DisplacedSphere struct {
 }
 
 // Evaluate returns the shortest distance from point p to the surface.
-func (s *DisplacedSphere) Evaluate(p pt.Vector) float64 {
-	// Base sphere distance
+func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	baseDist := p.Length() - s.Radius
 
 	// 1. Calculate UV coordinates from the normalized point direction
@@ -61,8 +62,7 @@ func (s *DisplacedSphere) Evaluate(p pt.Vector) float64 {
 
 // BoundingBox tells the renderer where the object exists in 3D space.
 // If the ray entirely misses this box, it won't bother evaluating the SDF.
-func (s *DisplacedSphere) BoundingBox() pt.Box {
-	// The maximum possible extent is the radius plus the maximum displacement
+func (s *Sphere) BoundingBox() pt.Box {
 	maxExtent := s.Radius + s.MaxHeight
 	return pt.Box{
 		Min: pt.Vector{X: -maxExtent, Y: -maxExtent, Z: -maxExtent},
@@ -70,34 +70,76 @@ func (s *DisplacedSphere) BoundingBox() pt.Box {
 	}
 }
 
-func Render(ds *dataset.Dataset, resolution int) {
-	scene := pt.Scene{}
-
-	resp, _ := ds.GenerateResponse(&dataset.Request{Resolution: resolution})
-
-	// 1. Initialize the custom SDF
-	customSDF := &DisplacedSphere{
-		Radius:    1.0,
-		Data:      resp.Displacements,
-		Width:     resolution,
-		Height:    resolution,
-		MaxHeight: 0.2, // How far the 1.0/-1.0 values push/pull the surface
+func Render(
+	ds *dataset.Dataset,
+	width int,
+	height int,
+	resolution int,
+	latitude float64,
+	longitude float64,
+	dir string,
+) {
+	err := os.MkdirAll(dir, 0744)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	// 2. Wrap it in a pt.SDFShape with a material
+	scene := pt.Scene{}
+
+	resp, _ := ds.GenerateResponse(&dataset.Request{
+		Resolution:     resolution,
+		UpAxis:         true,
+		SideAxis:       true,
+		LatitudeStart:  -90.0,
+		LatitudeEnd:    90.0,
+		LongitudeStart: -180.0,
+		LongitudeEnd:   180.0,
+	})
+
+	ds.Normalize(resp, -1.0, 1.0)
+
+	sphere := &Sphere{
+		Radius:    1.0,
+		Data:      resp.Displacements,
+		Width:     resolution + 1,
+		Height:    resolution + 1,
+		MaxHeight: 0.1,
+	}
+
 	material := pt.GlossyMaterial(pt.HexColor(0x33BCFF), 1.5, pt.Radians(20))
-	shape := pt.NewSDFShape(customSDF, material)
+	shape := pt.NewSDFShape(sphere, material)
 	scene.Add(shape)
 
-	// Add lighting and camera to see the result
-	light := pt.LightMaterial(pt.White, 500)
-	scene.Add(pt.NewSphere(pt.V(0, 5, 0), 1, light))
+	// longitude is flipped here as we've flipped
+	// it already in the dataset part to match
+	// rendering engine expectations
+	lat := latitude * math.Pi / 180.0
+	lng := -1 * longitude * math.Pi / 180.0
 
-	camera := pt.LookAt(pt.V(0, 0, -4), pt.V(0, 0, 0), pt.V(0, 1, 0), 45)
+	x := math.Cos(lat) * math.Cos(lng)
+	y := math.Sin(lat)
+	z := math.Cos(lat) * math.Sin(lng)
+
+	light := pt.NewSphere(
+		pt.V(x*6, y*5, z*5),
+		1,
+		pt.LightMaterial(pt.White, 20),
+	)
+	scene.Add(light)
+
+	camera := pt.LookAt(
+		pt.V(x*4, y*4, z*4),
+		pt.V(0, 0, 0),
+		pt.V(0, 1, 0),
+		45,
+	)
 
 	sampler := pt.NewSampler(4, 4)
-	renderer := pt.NewRenderer(&scene, &camera, sampler, 800, 800)
+	renderer := pt.NewRenderer(&scene, &camera, sampler, width, height)
 
-	// Render and save
-	renderer.IterativeRender("out_%03d.png", 10)
+	renderer.AdaptiveSamples = 8
+	renderer.SamplesPerPixel = 1
+	renderer.NumCPU = 16
+
+	renderer.IterativeRender(dir+"out_%03d.png", 100)
 }

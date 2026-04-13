@@ -9,28 +9,39 @@ import (
 func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			// TODO : method not allowed
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		var req *dataset.Request
-		//var res *dataset.Response
 		var err error
 
 		if req, err = dataset.NewRequest(r.Body); err != nil {
-			// TODO : bad request
+			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 
-		if req.Resolution > dataset.MAX_ONLINE_RESOLUTION || req.Resolution < 0 {
-			// TODO : bad request
+		// verify resolution bounds
+		if req.Resolution > dataset.MAX_ONLINE_RESOLUTION || req.Resolution < dataset.MIN_ONLINE_RESOLUTION {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
+
+		// as of right now request always encompass the entire planet
+		req.LatitudeStart = -90.0
+		req.LatitudeEnd = 90.0
+
+		req.LongitudeStart = -180.0
+		req.LongitudeEnd = 180.0
+
+		// we also want to set this for three js
+		req.UpAxis = true
+		req.SideAxis = false
 
 		log.FLog(topography_request_log, req.Resolution)
 		w.Header().Set("Content-Type", "application/octet-stream")
 		if err = d.StreamResponse(req, w, true); err != nil {
-			// TODO : internal server error or bad request
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	}

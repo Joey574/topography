@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"math"
 	"path/filepath"
 	"sync"
 	"topology/v2/internal/log"
@@ -13,8 +14,10 @@ import (
 )
 
 const (
-	_MIN_ELEV             = -11000.0
-	_MAX_ELEV             = 8850.0
+	_MIN_ELEV = -11000.0
+	_MAX_ELEV = 8850.0
+
+	MIN_ONLINE_RESOLUTION = 128
 	MAX_ONLINE_RESOLUTION = 2048
 
 	_FLOAT_32 = gdal.Float32
@@ -67,11 +70,6 @@ func NewDataset(path string, loadIntoRam bool) (*Dataset, error) {
 
 func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) error {
 	log.FLog(stream_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
-	req.LatitudeStart = -90.0
-	req.LatitudeEnd = 90.0
-
-	req.LongitudeStart = -180.0
-	req.LongitudeEnd = 180.0
 
 	if writeHeader {
 		header := make([]byte, 4)
@@ -101,6 +99,30 @@ func (d *Dataset) GenerateResponse(req *Request) (*Response, error) {
 
 	resp.Displacements = unsafe.Slice(ptr, buf.Len()/4)
 	return resp, nil
+}
+
+func (d *Dataset) Normalize(resp *Response, a float32, b float32) {
+	minx := float32(math.MaxFloat32)
+	maxx := float32(-math.MaxFloat32)
+
+	for i := range resp.Displacements {
+		if resp.Displacements[i] > maxx {
+			maxx = resp.Displacements[i]
+		}
+
+		if resp.Displacements[i] < minx {
+			minx = resp.Displacements[i]
+		}
+	}
+
+	invxdiff := 1.0 / (maxx - minx)
+	ndiff := b - a
+
+	for i := range resp.Displacements {
+		v := resp.Displacements[i]
+		v = (v - minx) * ndiff * invxdiff
+		resp.Displacements[i] = v
+	}
 }
 
 func (d *Dataset) bulkElevationRead(req *Request, w io.Writer) error {

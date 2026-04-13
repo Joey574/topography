@@ -2,7 +2,6 @@ package dataset
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math"
 	"topology/v2/internal/log"
@@ -14,7 +13,8 @@ import (
 
 func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 	if d.data == nil {
-		return fmt.Errorf("") // TODO
+		log.FLog(general_error, "dataset is nil")
+		return internalError()
 	}
 
 	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution)
@@ -22,6 +22,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 
 	// invalid parameters
 	if dlat < 0 || dlng < 0 {
+		log.FLog(general_error, "invalid request")
 		return invalidRequest(req)
 	}
 
@@ -29,11 +30,21 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 
 	for i := 0; i <= req.Resolution; i++ {
 
-		// flip latitude for THREE js
-		lat := req.LatitudeStart + float64(req.Resolution-i)*dlat
+		// handle axis request
+		latidx := i
+		if req.UpAxis {
+			latidx = req.Resolution - i
+		}
+		lat := req.LatitudeStart + float64(latidx)*dlat
 
 		for j := 0; j <= req.Resolution; j++ {
-			lon := req.LongitudeStart + float64(j)*dlng
+
+			// handle axis request
+			lngidx := j
+			if req.SideAxis {
+				lngidx = req.Resolution - j
+			}
+			lon := req.LongitudeStart + float64(lngidx)*dlng
 
 			px, py := d.toPixel(lat, lon)
 			jdx := (py*d.rasterX + px) * d.bytesPerPoint()
@@ -58,7 +69,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 
 func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 	if d.data != nil {
-		log.FLog(general_error, "dataset is nil")
+		log.FLog(general_error, "trying to load from disk when ram is available")
 		return internalError()
 	}
 
@@ -90,8 +101,18 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 	scratch := make([]byte, 4)
 
 	for i := 0; i <= req.Resolution; i++ {
-		lat := req.LatitudeStart + float64(req.Resolution-i)*dlat
+
+		// handle axis request
+		latidx := i
+		if req.UpAxis {
+			latidx = req.Resolution - i
+		}
+		lat := req.LatitudeStart + float64(latidx)*dlat
+
+		// get pixel information
 		px, py := d.toPixel(lat, req.LongitudeStart)
+
+		// advise read to gdal dataset
 		err := d.ds.AdviseRead(gdal.Read, px, py, lng_points, 1, lng_points, 1, d.dtype, 1, []int{1}, nil)
 		if err != nil {
 			log.FLog(general_error, err)
@@ -107,7 +128,14 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 
 		var f float32
 		for j := 0; j <= req.Resolution; j++ {
-			lon := req.LongitudeStart + float64(j)*dlng
+
+			// handle axis request
+			lngidx := j
+			if req.SideAxis {
+				lngidx = req.Resolution - j
+			}
+			lon := req.LongitudeStart + float64(lngidx)*dlng
+
 			pxlng, _ := d.toPixel(lat, lon)
 			offset := (pxlng - px) * d.bytesPerPoint()
 

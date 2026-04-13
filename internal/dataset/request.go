@@ -6,7 +6,10 @@ import (
 )
 
 type Request struct {
-	Resolution     int     `json:"resolution"`
+	Resolution int  `json:"resolution"`
+	UpAxis     bool `json:"up_axis"`
+	SideAxis   bool `json:"side_axis"`
+
 	LatitudeStart  float64 `json:"latitude_start"`
 	LatitudeEnd    float64 `json:"latitude_end"`
 	LongitudeStart float64 `json:"longitude_start"`
