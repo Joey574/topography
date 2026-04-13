@@ -61,11 +61,12 @@ func NewDataset(path string, loadIntoRam bool) (*Dataset, error) {
 		d.data = nil
 	}
 
-	log.FLog(initLog)
+	log.FLog(initialize_log)
 	return d, nil
 }
 
 func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) error {
+	log.FLog(stream_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
 	req.LatitudeStart = -90.0
 	req.LatitudeEnd = 90.0
 
@@ -87,6 +88,7 @@ func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) er
 // Internally it wraps StreamResponse with a writer to the response object
 func (d *Dataset) GenerateResponse(req *Request) (*Response, error) {
 	resp := NewResponse(req)
+	log.FLog(generation_log, resp.Resolution, resp.VertexCount)
 
 	ptr := unsafe.SliceData(resp.Displacements)
 	byteSlice := unsafe.Slice((*byte)(unsafe.Pointer(ptr)), cap(resp.Displacements)*4)

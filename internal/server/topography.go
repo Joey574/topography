@@ -22,31 +22,15 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 			return
 		}
 
-		if req.Resolution > dataset.MAX_ONLINE_RESOLUTION {
+		if req.Resolution > dataset.MAX_ONLINE_RESOLUTION || req.Resolution < 0 {
 			// TODO : bad request
 			return
 		}
 
-		log.FLog(topReqLog, req.Resolution)
-		// res, err = d.GenerateResponse(req)
-		// if err != nil {
-		// 	switch err {
-		// 	case dataset.InternalError:
-		// 		// TODO : internal server error
-		// 	case dataset.InvalidRequest:
-		// 		// TODO : bad request
-		// 	default:
-		// 		// TODO : decide what goes here
-		// 		// likely ise as errors we get
-		// 		// here are undefined by dataset
-		// 		// and likely come from godal
-		// 	}
-		// 	return
-		// }
-
+		log.FLog(topography_request_log, req.Resolution)
 		w.Header().Set("Content-Type", "application/octet-stream")
 		if err = d.StreamResponse(req, w, true); err != nil {
-			// TODO : internal server error
+			// TODO : internal server error or bad request
 			return
 		}
 	}

@@ -1,8 +1,7 @@
 package server
 
-const initLog = "[SERVER] [i] Initialized Server"
-const indxLog = "[SERVER] [i] Serving /index.html"
-const requestLog = "[SERVER] [i] Recieved request: ip='%s', path='%s'"
-const topReqLog = "[SERVER] [i] Requesting topography data: resolution='%d'"
+const initialize_log = "[SERVER] [i] Initialized Server"
+const request_log = "[SERVER] [i] Recieved request: ip='%s', path='%s' method='%s'"
+const topography_request_log = "[SERVER] [i] Requesting topography: resolution='%d'"
 
-const indexLogErr = "[SERVER] [!] Index Error %w"
+const server_error = "[SERVER] [!] Error %w"

@@ -19,18 +19,20 @@ type Server struct {
 func NewServer(tf embed.FS, sf embed.FS, d *dataset.Dataset) *Server {
 	s := &Server{}
 	s.tmpl, _ = template.ParseFS(tf, "templates/*.html")
-	s.SetHandlers(tf, sf, d)
 	s.limiter = rate.NewLimiter(5, 10)
+	s.SetHandlers(tf, sf, d)
 
-	log.FLog(initLog)
+	log.FLog(initialize_log)
 	return s
 }
 
+// Apply CSRF protections
 func (s *Server) WrapCSRF(next http.Handler) http.Handler {
 	csrf := http.NewCrossOriginProtection()
 	return csrf.Handler(next)
 }
 
+// Add some security headers and check rate limiter
 func (s *Server) MiddlewareHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Strict-Transport-Security", "max-age=63072000;")
@@ -45,9 +47,10 @@ func (s *Server) MiddlewareHandler(next http.Handler) http.Handler {
 	})
 }
 
+// Log incoming requests
 func (s *Server) LoggingLayer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.FLog(requestLog, r.RemoteAddr, r.URL.Path)
+		log.FLog(request_log, r.RemoteAddr, r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }
