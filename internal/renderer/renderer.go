@@ -6,7 +6,7 @@ import (
 	"os"
 	"topology/v2/internal/dataset"
 
-	"github.com/fogleman/pt/pt"
+	"github.com/Joey574/pt/pt"
 )
 
 type Sphere struct {
@@ -95,8 +95,8 @@ func Render(
 		LongitudeStart: -180.0,
 		LongitudeEnd:   180.0,
 	})
-
-	ds.Normalize(resp, -1.0, 1.0)
+	dataset.Normalize(resp, -1.0, 1.0)
+	ds.Close()
 
 	sphere := &Sphere{
 		Radius:    1.0,
@@ -120,7 +120,7 @@ func Render(
 	light := pt.NewSphere(
 		pt.V(x*6, y*5, z*5),
 		1,
-		pt.LightMaterial(pt.White, 20),
+		pt.LightMaterial(pt.White, 10),
 	)
 	scene.Add(light)
 
@@ -134,8 +134,9 @@ func Render(
 	sampler := pt.NewSampler(4, 4)
 	renderer := pt.NewRenderer(&scene, &camera, sampler, width, height)
 
-	renderer.AdaptiveSamples = 8
-	renderer.NumCPU = 16
+	renderer.AdaptiveSamples = 32
+	renderer.SamplesPerPixel = 1
 
-	renderer.IterativeRender(dir+"out_%03d.png", 100)
+	renderer.NumCPU = 24
+	renderer.IterativeRender(dir+"out_%03d.png", 200)
 }

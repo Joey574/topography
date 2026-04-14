@@ -68,6 +68,11 @@ func NewDataset(path string, loadIntoRam bool) (*Dataset, error) {
 	return d, nil
 }
 
+func (d *Dataset) Close() {
+	d.ds.Close()
+	d.data = nil
+}
+
 func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) error {
 	log.FLog(stream_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
 
@@ -101,7 +106,7 @@ func (d *Dataset) GenerateResponse(req *Request) (*Response, error) {
 	return resp, nil
 }
 
-func (d *Dataset) Normalize(resp *Response, a float32, b float32) {
+func Normalize(resp *Response, a float32, b float32) {
 	minx := float32(math.MaxFloat32)
 	maxx := float32(-math.MaxFloat32)
 

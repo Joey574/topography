@@ -2,7 +2,7 @@
 This is a topographical viewer that renders views of the earth
 
 ## Usage
-**To use this you will need a dataset in a similair format to SRTM15+, instructions for installing can be found below. Ensure you also have libgdal-dev installed on your system.**
+**To use this you will need a dataset in a similair format to SRTM15+, instructions for installing can be found below. Ensure you also have a modern libgdal-dev version installed on your system.**
 
 There are two main modes you can run, one of which is a webserver, the other is a renderer. Both require the -f option to be passed for the dataset. And they look like as follows
 
