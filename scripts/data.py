@@ -118,7 +118,7 @@ original = "/home/joey574/Downloads/SRTM15Plus/SRTM15Plus_srtm.vrt"
 modified_f16 = "/home/joey574/repos/topography/datasets/srtm15plus_f16.tif"
 modified_f32 = "/home/joey574/repos/topography/datasets/srtm15plus_f32.tif"
 
-create_dataset(original, modified_f16, True)
+# create_dataset(original, modified_f16, True)
 audit_dataset(original, modified_f16)
 
 # create_dataset(original, modified_f32, False)

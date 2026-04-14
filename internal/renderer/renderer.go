@@ -110,9 +110,6 @@ func Render(
 	shape := pt.NewSDFShape(sphere, material)
 	scene.Add(shape)
 
-	// longitude is flipped here as we've flipped
-	// it already in the dataset part to match
-	// rendering engine expectations
 	lat := latitude * math.Pi / 180.0
 	lng := -1 * longitude * math.Pi / 180.0
 
@@ -138,7 +135,6 @@ func Render(
 	renderer := pt.NewRenderer(&scene, &camera, sampler, width, height)
 
 	renderer.AdaptiveSamples = 8
-	renderer.SamplesPerPixel = 1
 	renderer.NumCPU = 16
 
 	renderer.IterativeRender(dir+"out_%03d.png", 100)

@@ -58,6 +58,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 
 			binary.LittleEndian.PutUint32(scratch[:], math.Float32bits(f))
 			if _, err := w.Write(scratch[:]); err != nil {
+				log.FLog(general_error, err)
 				return err
 			}
 		}
@@ -147,6 +148,7 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 
 			binary.LittleEndian.PutUint32(scratch[:], math.Float32bits(f))
 			if _, err := w.Write(scratch[:]); err != nil {
+				log.FLog(general_error, err)
 				return err
 			}
 		}
