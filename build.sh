@@ -7,15 +7,11 @@ BUILDFLAGS="-tags=netgo,osusergo -buildmode=pie -buildvcs=false -trimpath"
 
 OUTPUT="./bin/topography"
 
+cp -r ./src/* ./min
 if command -v minify >/dev/null 2>&1; then
-    cp -r ./src/* ./min
     minify -q -r -i ./min
 else
     echo "[-] WARNING: 'minify' command not found, this is NOT a fatal error"
-    cp ./src/css/style.css ./min/static/css/style.css
-    cp ./src/js/script.js ./min/static/js/script.js
-    cp ./src/html/index.html ./min/templates/index.html
-    cp ./src/misc/favicon.svg ./min/static/favicon.svg
 fi
 
 GOMAXPROCS=$(nproc) go build $BUILDFLAGS -ldflags="$LDFLAGS" -gcflags="$GCFLAGS" -o $OUTPUT
