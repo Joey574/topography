@@ -63,7 +63,7 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 // BoundingBox tells the renderer where the object exists in 3D space.
 // If the ray entirely misses this box, it won't bother evaluating the SDF.
 func (s *Sphere) BoundingBox() pt.Box {
-	maxExtent := s.Radius + s.MaxHeight
+	maxExtent := s.Radius + 11000
 	return pt.Box{
 		Min: pt.Vector{X: -maxExtent, Y: -maxExtent, Z: -maxExtent},
 		Max: pt.Vector{X: maxExtent, Y: maxExtent, Z: maxExtent},
@@ -75,8 +75,10 @@ func Render(
 	width int,
 	height int,
 	resolution int,
+	iterations int,
 	latitude float64,
 	longitude float64,
+	cores int,
 	dir string,
 ) {
 	err := os.MkdirAll(dir, 0744)
@@ -95,6 +97,7 @@ func Render(
 		LongitudeStart: -180.0,
 		LongitudeEnd:   180.0,
 	})
+
 	dataset.Normalize(resp, -1.0, 1.0)
 	ds.Close()
 
@@ -113,19 +116,19 @@ func Render(
 	lat := latitude * math.Pi / 180.0
 	lng := -1 * longitude * math.Pi / 180.0
 
-	x := math.Cos(lat) * math.Cos(lng)
-	y := math.Sin(lat)
-	z := math.Cos(lat) * math.Sin(lng)
+	x := (math.Cos(lat) * math.Cos(lng)) * sphere.Radius
+	y := (math.Sin(lat)) * sphere.Radius
+	z := (math.Cos(lat) * math.Sin(lng)) * sphere.Radius
 
 	light := pt.NewSphere(
-		pt.V(x*6, y*5, z*5),
+		pt.V(x*4, y*3, z*3),
 		1,
 		pt.LightMaterial(pt.White, 10),
 	)
 	scene.Add(light)
 
 	camera := pt.LookAt(
-		pt.V(x*4, y*4, z*4),
+		pt.V(x*3, y*3, z*3),
 		pt.V(0, 0, 0),
 		pt.V(0, 1, 0),
 		45,
@@ -137,6 +140,6 @@ func Render(
 	renderer.AdaptiveSamples = 32
 	renderer.SamplesPerPixel = 1
 
-	renderer.NumCPU = 24
-	renderer.IterativeRender(dir+"out_%03d.png", 200)
+	renderer.NumCPU = cores
+	renderer.IterativeRender(dir+"out_%03d.png", iterations)
 }

@@ -2,9 +2,12 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"runtime"
+	"strings"
 	"topology/v2/internal/dataset"
 	logger "topology/v2/internal/log"
 	"topology/v2/internal/renderer"
@@ -27,12 +30,14 @@ type Args struct {
 	Render bool `long:"render"`
 	Disk   bool `long:"disk"`
 
-	Samples   int     `short:"s" long:"samples" default:"32768"`
-	Width     int     `long:"width" default:"800"`
-	Height    int     `long:"height" default:"800"`
-	Latitude  float64 `long:"lat" default:"0"`
-	Longitude float64 `long:"lng" default:"0"`
-	Output    string  `short:"o" long:"output" default:"./_renders/"`
+	Samples    int     `short:"s" long:"samples" default:"45200"`
+	Iterations int     `short:"i" long:"iterations" default:"100"`
+	Width      int     `long:"width" default:"800"`
+	Height     int     `long:"height" default:"800"`
+	Latitude   float64 `long:"lat" default:"0"`
+	Longitude  float64 `long:"lng" default:"0"`
+	Cores      int     `long:"cores" default:"-1"`
+	Output     string  `short:"o" long:"output" default:"./renders/output/"`
 }
 
 func main() {
@@ -70,13 +75,26 @@ func main() {
 	}
 
 	if args.Render {
+		if args.Cores == -1 {
+			// TODO : get number of cores, runtime.NumCPU() didn't appear to work
+			fmt.Print(runtime.NumCPU())
+			args.Cores = runtime.NumCPU()
+		}
+
+		// if the output directory doesn't end in '/', append it
+		if !strings.HasSuffix(args.Output, "/") {
+			args.Output += "/"
+		}
+
 		renderer.Render(
 			d,
 			args.Width,
 			args.Height,
 			args.Samples,
+			args.Iterations,
 			args.Latitude,
 			args.Longitude,
+			args.Cores,
 			args.Output,
 		)
 	}
