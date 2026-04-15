@@ -1,9 +1,3 @@
-// ============================================================================
-// EARTH TOPOGRAPHY VIEWER
-// Smooth sphere by default; displacement only applied on backend fetch
-// NOW WITH FRONT-END NORMALIZATION FOR BETTER VISUALIZATION
-// ============================================================================
-
 // Core Three.js objects
 let scene, camera, renderer, controls, sphere;
 let animationFrameId;
@@ -18,7 +12,6 @@ let settings = {
   smoothingLevel: 1,
 };
 
-// Performance optimization: Geometry cache
 const geometryCache = new Map(); // Map<resolution, {geometry, originalPositions}>
 const materialCache = new Map(); // Map<materialKey, material>
 
@@ -31,7 +24,6 @@ let frameCount = 0;
 let lastFpsUpdate = performance.now();
 let lastFrameTime = performance.now();
 
-// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -188,7 +180,6 @@ function createSphere(resolution) {
     sphere = null;
   }
 
-  //const { geometry } = getOrCreateBaseGeometry(resolution);
   const material = getOrCreateMaterial(settings.wireframe, settings.color);
 
   sphere = new THREE.Group();
