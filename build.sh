@@ -7,9 +7,16 @@ BUILDFLAGS="-tags=netgo,osusergo -buildmode=pie -buildvcs=false -trimpath"
 
 OUTPUT="./bin/topography"
 
-minify -q ./src/style.css -o ./static/css/style.css
-minify -q ./src/script.js -o ./static/js/script.js
-minify -q ./src/index.html -o ./templates/index.html
+if command -v minify >/dev/null 2>&1; then
+    minify -q ./src/style.css -o ./static/css/style.css
+    minify -q ./src/script.js -o ./static/js/script.js
+    minify -q ./src/index.html -o ./templates/index.html
+else
+    echo "[-] WARNING: 'minify' command not found, this is NOT a fatal error"
+    cp ./src/style.css ./static/css/style.css
+    cp ./src/script.js ./static/js/script.js
+    cp ./src/index.html ./templates/index.html
+fi
 
 go build $BUILDFLAGS -ldflags="$LDFLAGS" -gcflags="$GCFLAGS" -o $OUTPUT
 strip $OUTPUT
