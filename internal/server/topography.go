@@ -2,8 +2,8 @@ package server
 
 import (
 	"net/http"
-	"topology/v2/internal/dataset"
-	"topology/v2/internal/log"
+	"topography/v2/internal/dataset"
+	"topography/v2/internal/log"
 )
 
 func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {

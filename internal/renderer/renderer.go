@@ -4,7 +4,7 @@ import (
 	"log"
 	"math"
 	"os"
-	"topology/v2/internal/dataset"
+	"topography/v2/internal/dataset"
 
 	"github.com/Joey574/pt/pt"
 )
@@ -116,12 +116,12 @@ func Render(
 	lat := latitude * math.Pi / 180.0
 	lng := -1 * longitude * math.Pi / 180.0
 
-	x := (math.Cos(lat) * math.Cos(lng)) * sphere.Radius
-	y := (math.Sin(lat)) * sphere.Radius
-	z := (math.Cos(lat) * math.Sin(lng)) * sphere.Radius
+	x := math.Cos(lat) * math.Cos(lng)
+	y := math.Sin(lat)
+	z := math.Cos(lat) * math.Sin(lng)
 
 	light := pt.NewSphere(
-		pt.V(x*4, y*3, z*3),
+		pt.V(x*6, y*5, z*5),
 		1,
 		pt.LightMaterial(pt.White, 10),
 	)

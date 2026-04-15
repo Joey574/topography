@@ -1,0 +1,93 @@
+package server
+
+import (
+	"embed"
+	"net/http"
+	"text/template"
+	"topography/v2/internal/dataset"
+	"topography/v2/internal/log"
+
+	"golang.org/x/time/rate"
+)
+
+type Server struct {
+	Handler http.Handler
+	tmpl    *template.Template
+	limiter *rate.Limiter
+}
+
+func NewServer(fs embed.FS, d *dataset.Dataset) *Server {
+	s := &Server{}
+	s.tmpl, _ = template.ParseFS(fs, "min/templates/*.html")
+	s.limiter = rate.NewLimiter(15, 30)
+	s.SetHandlers(fs, d)
+
+	log.FLog(initialize_log)
+	return s
+}
+
+// Apply CSRF protections
+func (s *Server) WrapCSRF(next http.Handler) http.Handler {
+	csrf := http.NewCrossOriginProtection()
+	return csrf.Handler(next)
+}
+
+// Add some security headers
+func (s *Server) HeaderHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000;")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Log incoming requests
+func (s *Server) LoggingHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.FLog(request_log, r.RemoteAddr, r.URL.Path, r.Method)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) RateLimitHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.limiter.Allow() {
+			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Returns a http.Handler packaged with all the handlers and security protections
+func (s *Server) SetHandlers(fs embed.FS, d *dataset.Dataset) {
+	mux := http.NewServeMux()
+
+	// main functionality
+	mux.Handle("GET /{$}", s.TemplateHandler(fs, "index.html"))
+	mux.Handle("POST /topography", s.TopographyHandler(d))
+
+	// utility : TODO
+	mux.Handle("GET /static/js/script.js", s.DefaultHandler(fs, "min/static/js/script.js"))
+	mux.Handle("GET /static/css/style.css", s.DefaultHandler(fs, "min/static/css/style.css"))
+	mux.Handle("GET /robots.txt", s.DefaultHandler(fs, "min/static/misc/robots.txt"))
+	mux.Handle("GET /humans.txt", s.DefaultHandler(fs, "min/static/misc/humans.txt"))
+	//mux.Handle("GET /sitemap.xml", nil)
+	mux.Handle("GET /favicon.ico", s.DefaultHandler(fs, "min/static/favicon.svg"))
+	//mux.Handle("GET /about", nil)
+	//mux.Handle("GET /contact", nil)
+
+	// legal : TODO
+	//mux.Handle("GET /tos", nil)
+	//mux.Handle("GET /privacy", nil)
+	//mux.Handle("GET /cookies", nil)
+	//mux.Handle("GET /accessibility", nil)
+
+	// wrappers
+	handler := s.HeaderHandler(mux)
+	handler = s.WrapCSRF(handler)
+	handler = s.RateLimitHandler(handler)
+	handler = s.LoggingHandler(handler)
+	s.Handler = handler
+}

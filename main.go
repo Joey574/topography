@@ -8,19 +8,16 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"topology/v2/internal/dataset"
-	logger "topology/v2/internal/log"
-	"topology/v2/internal/renderer"
-	"topology/v2/internal/server"
+	"topography/v2/internal/dataset"
+	logger "topography/v2/internal/log"
+	"topography/v2/internal/renderer"
+	"topography/v2/internal/server"
 
 	"github.com/jessevdk/go-flags"
 )
 
-//go:embed static/**
-var sf embed.FS
-
-//go:embed templates/*
-var tf embed.FS
+//go:embed min/**
+var fs embed.FS
 
 type Args struct {
 	File string `short:"f" long:"file" required:"true"`
@@ -70,15 +67,15 @@ func main() {
 	}
 
 	if args.Server {
-		h := server.NewServer(tf, sf, d)
+		h := server.NewServer(fs, d)
 		http.ListenAndServe(":8080", h.Handler)
 	}
 
 	if args.Render {
 		if args.Cores == -1 {
 			// TODO : get number of cores, runtime.NumCPU() didn't appear to work
-			fmt.Print(runtime.NumCPU())
-			args.Cores = runtime.NumCPU()
+			fmt.Println(runtime.NumCPU())
+			args.Cores = 16
 		}
 
 		// if the output directory doesn't end in '/', append it

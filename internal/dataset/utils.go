@@ -1,10 +1,8 @@
 package dataset
 
 import (
-	"encoding/binary"
 	"io"
-	"math"
-	"topology/v2/internal/log"
+	"topography/v2/internal/log"
 	"unsafe"
 
 	gdal "github.com/seerai/godal"
@@ -26,7 +24,10 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 		return invalidRequest(req)
 	}
 
-	scratch := make([]byte, 4)
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	bpp := d.bytesPerPoint()
 
 	for i := 0; i <= req.Resolution; i++ {
 
@@ -47,7 +48,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 			lon := req.LongitudeStart + float64(lngidx)*dlng
 
 			px, py := d.toPixel(lat, lon)
-			jdx := (py*d.rasterX + px) * d.bytesPerPoint()
+			jdx := (py*d.rasterX + px) * bpp
 
 			var f float32
 			if d.dtype == _FLOAT_16 {
@@ -56,8 +57,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 				f = *(*float32)(unsafe.Pointer(&d.data[jdx]))
 			}
 
-			binary.LittleEndian.PutUint32(scratch[:], math.Float32bits(f))
-			if _, err := w.Write(scratch[:]); err != nil {
+			if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&f)), 4)); err != nil {
 				log.FLog(general_error, err)
 				return err
 			}
@@ -99,7 +99,6 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 	dlng /= float64(req.Resolution)
 
 	buf := make([]byte, int(lng_points)*d.bytesPerPoint())
-	scratch := make([]byte, 4)
 
 	for i := 0; i <= req.Resolution; i++ {
 
@@ -146,8 +145,7 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 				f = *(*float32)(unsafe.Pointer(&buf[offset]))
 			}
 
-			binary.LittleEndian.PutUint32(scratch[:], math.Float32bits(f))
-			if _, err := w.Write(scratch[:]); err != nil {
+			if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&f)), 4)); err != nil {
 				log.FLog(general_error, err)
 				return err
 			}
