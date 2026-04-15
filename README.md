@@ -10,7 +10,7 @@ TODO
 ## Setup
 **To properly use this tool it requires some setup**
 
-This tool was made for the SRTM15+ dataset, though it should technically work with any GDAL compatible dataset that uses the same pixel layout
+This tool was made for the SRTM15+ dataset, though it should technically work with any GDAL compatible dataset that uses the same pixel layout. A semi-modern libgdal is also required (>= 3.11.4).
 
 To download the SRTM15+ dataset, I recommend getting it from [here](https://portal.opentopography.org/raster?opentopoID=OTSRTM.122019.4326.1), once installed I recommend running *scripts/data.py* which performs compressions on the dataset and unifies it into a single file. Which is just a bit easier to work with.
 
