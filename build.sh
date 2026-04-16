@@ -14,7 +14,7 @@ else
     echo "[-] WARNING: 'minify' command not found, this is NOT a fatal error"
 fi
 
-GOMAXPROCS=$(nproc) go build $BUILDFLAGS -ldflags="$LDFLAGS" -gcflags="$GCFLAGS" -o $OUTPUT
+go build $BUILDFLAGS -ldflags="$LDFLAGS" -gcflags="$GCFLAGS" -o $OUTPUT
 strip $OUTPUT
 
 file_size=$(stat -c %s $OUTPUT)

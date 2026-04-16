@@ -17,6 +17,30 @@ type Sphere struct {
 	MaxHeight float64
 }
 
+func normalize(xs *[]float32, a, b float32) {
+	minx := float32(math.MaxFloat32)
+	maxx := float32(-math.MaxFloat32)
+
+	for i := range *xs {
+		if (*xs)[i] > maxx {
+			maxx = (*xs)[i]
+		}
+
+		if (*xs)[i] < minx {
+			minx = (*xs)[i]
+		}
+	}
+
+	invxdiff := 1.0 / (maxx - minx)
+	ndiff := b - a
+
+	for i := range *xs {
+		v := (*xs)[i]
+		v = (v - minx) * ndiff * invxdiff
+		(*xs)[i] = v
+	}
+}
+
 // Evaluate returns the shortest distance from point p to the surface.
 func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	baseDist := p.Length() - s.Radius
@@ -97,13 +121,14 @@ func Render(
 		LongitudeStart: -180.0,
 		LongitudeEnd:   180.0,
 	}, false, nil)
-
-	//dataset.Normalize(resp, -1.0, 1.0)
 	ds.Close()
+
+	data := resp.Floats()
+	normalize(&data, -1.0, 1.0)
 
 	sphere := &Sphere{
 		Radius:    1.0,
-		Data:      resp.Floats(),
+		Data:      data,
 		Width:     resolution + 1,
 		Height:    resolution + 1,
 		MaxHeight: 0.1,

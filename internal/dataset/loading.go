@@ -1,13 +1,16 @@
 package dataset
 
 import (
-	"fmt"
 	"topography/v2/internal/log"
 
 	gdal "github.com/seerai/godal"
 )
 
 func (d *Dataset) loadIntoRAM(isServer bool) error {
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if isServer {
 		resolution := MAX_ONLINE_RESOLUTION
 
@@ -30,9 +33,6 @@ func (d *Dataset) loadIntoRAM(isServer bool) error {
 			return err
 		}
 
-		fmt.Println("old geotransform", d.meta.Gt)
-		fmt.Println("old inv_geotransform", d.meta.Igt)
-
 		// internally resize dataset to match new resolution
 		d.meta.Gt = scaleGeoTransform(d.meta.Gt, d.meta.RasterX, d.meta.RasterY, newRasterX, newRasterY)
 		d.meta.Igt = gdal.InvGeoTransform(d.meta.Gt)
@@ -41,9 +41,6 @@ func (d *Dataset) loadIntoRAM(isServer bool) error {
 		d.meta.Type = _FLOAT_32
 		d.meta.TypeBytes = d.meta.Type.Size() / 8
 		d.data = res.Bytes()
-
-		fmt.Println("new geotransform", d.meta.Gt)
-		fmt.Println("new inv_geotransform", d.meta.Igt)
 
 		return nil
 	}

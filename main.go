@@ -2,11 +2,9 @@ package main
 
 import (
 	"embed"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strings"
 	"topography/v2/internal/dataset"
 	logger "topography/v2/internal/log"
@@ -75,7 +73,6 @@ func main() {
 		if args.Cores == -1 {
 			// TODO : get number of cores, runtime.NumCPU()
 			// keeps returning 2 instead of core count :/
-			fmt.Println(runtime.NumCPU())
 			args.Cores = 16
 		}
 
