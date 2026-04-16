@@ -157,13 +157,40 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 
 }
 
-func (d *Dataset) loadIntoRAM() error {
+func (d *Dataset) loadIntoRAM(isServer bool) error {
+	if isServer {
+		req := &Request{
+			Resolution:     MAX_ONLINE_RESOLUTION,
+			LatitudeStart:  -90.0,
+			LatitudeEnd:    90.0,
+			LongitudeStart: -180.0,
+			LongitudeEnd:   180.0,
+		}
+
+		aspectRatio := float64(d.rasterX) / float64(d.rasterY)
+		newRasterY := MAX_ONLINE_RESOLUTION
+		newRasterX := int(float64(MAX_ONLINE_RESOLUTION) * aspectRatio)
+
+		resp, err := d.GenerateResponse(req)
+		if err != nil {
+			return err
+		}
+
+		// internally resize dataset to match new resolution
+		d.gt = d.scaleGeoTransform(d.gt, d.rasterX, d.rasterY, newRasterX, newRasterY)
+		d.igt = gdal.InvGeoTransform(d.gt)
+
+		d.rasterX = newRasterX
+		d.rasterY = newRasterY
+		d.data = unsafe.Slice((*byte)(unsafe.Pointer(&resp.Displacements[0])), len(resp.Displacements)*4)
+		return nil
+	}
+
 	err := d.ds.AdviseRead(gdal.Read, 0, 0, d.rasterX, d.rasterY, d.rasterX, d.rasterY, d.dtype, 1, []int{1}, nil)
 	if err != nil {
 		return err
 	}
 
-	d.data = make([]byte, d.rasterX*d.rasterY*d.bytesPerPoint())
 	err = d.ds.BasicRead(0, 0, d.rasterX, d.rasterY, []int{1}, d.data)
 	if err != nil {
 		return err
@@ -189,5 +216,19 @@ func (d *Dataset) bytesPerPoint() int {
 		return 4
 	default:
 		return 0
+	}
+}
+
+func (d *Dataset) scaleGeoTransform(ogt [6]float64, ox, oy, nx, ny int) [6]float64 {
+	scaleX := float64(nx) / float64(ox)
+	scaleY := float64(ny) / float64(oy)
+
+	return [6]float64{
+		ogt[0],
+		ogt[1] / scaleX,
+		ogt[2] / scaleX,
+		ogt[3],
+		ogt[4] / scaleY,
+		ogt[5] / scaleY,
 	}
 }

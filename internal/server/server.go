@@ -18,7 +18,7 @@ type Server struct {
 
 func NewServer(fs embed.FS, d *dataset.Dataset) *Server {
 	s := &Server{}
-	s.tmpl, _ = template.ParseFS(fs, "min/templates/*.html")
+	s.tmpl, _ = template.ParseFS(fs, "min/html/*.html")
 	s.limiter = rate.NewLimiter(15, 30)
 	s.SetHandlers(fs, d)
 
@@ -68,21 +68,21 @@ func (s *Server) SetHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux.Handle("GET /{$}", s.TemplateHandler(fs, "index.html"))
 	mux.Handle("POST /topography", s.TopographyHandler(d))
 
-	// utility : TODO
-	mux.Handle("GET /static/js/script.js", s.DefaultHandler(fs, "min/static/js/script.js"))
-	mux.Handle("GET /static/css/style.css", s.DefaultHandler(fs, "min/static/css/style.css"))
-	mux.Handle("GET /robots.txt", s.DefaultHandler(fs, "min/static/misc/robots.txt"))
-	mux.Handle("GET /humans.txt", s.DefaultHandler(fs, "min/static/misc/humans.txt"))
+	// utility
+	mux.Handle("GET /static/js/script.js", s.DefaultHandler(fs, "min/js/script.js"))
+	mux.Handle("GET /static/css/style.css", s.DefaultHandler(fs, "min/css/style.css"))
+	mux.Handle("GET /robots.txt", s.DefaultHandler(fs, "min/misc/robots.txt"))
+	mux.Handle("GET /humans.txt", s.DefaultHandler(fs, "min/misc/humans.txt"))
 	//mux.Handle("GET /sitemap.xml", nil)
-	mux.Handle("GET /favicon.ico", s.DefaultHandler(fs, "min/static/favicon.svg"))
-	//mux.Handle("GET /about", nil)
-	//mux.Handle("GET /contact", nil)
+	mux.Handle("GET /favicon.ico", s.DefaultHandler(fs, "min/favicon.svg"))
+	mux.Handle("GET /about", s.TemplateHandler(fs, "about.html"))
+	mux.Handle("GET /contact", s.TemplateHandler(fs, "contact.html"))
 
-	// legal : TODO
-	//mux.Handle("GET /tos", nil)
-	//mux.Handle("GET /privacy", nil)
-	//mux.Handle("GET /cookies", nil)
-	//mux.Handle("GET /accessibility", nil)
+	// legal
+	mux.Handle("GET /tos", s.TemplateHandler(fs, "tos.html"))
+	mux.Handle("GET /privacy", s.TemplateHandler(fs, "privacy.html"))
+	mux.Handle("GET /cookies", s.TemplateHandler(fs, "cookies.html"))
+	mux.Handle("GET /accessibility", s.TemplateHandler(fs, "accessibility.html"))
 
 	// wrappers
 	handler := s.HeaderHandler(mux)

@@ -61,7 +61,7 @@ func main() {
 		logger.SetLogFile(f)
 	}
 
-	d, err := dataset.NewDataset(args.File, !args.Disk)
+	d, err := dataset.NewDataset(args.File, !args.Disk, args.Server)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -73,7 +73,8 @@ func main() {
 
 	if args.Render {
 		if args.Cores == -1 {
-			// TODO : get number of cores, runtime.NumCPU() didn't appear to work
+			// TODO : get number of cores, runtime.NumCPU()
+			// keeps returning 2 instead of core count :/
 			fmt.Println(runtime.NumCPU())
 			args.Cores = 16
 		}

@@ -38,11 +38,11 @@ type Dataset struct {
 	dtype gdal.DataType
 }
 
-func NewDataset(path string, loadIntoRam bool) (*Dataset, error) {
+func NewDataset(path string, loadIntoRam bool, isServer bool) (*Dataset, error) {
 	d := &Dataset{}
 	source = filepath.Base(path)
 
-	// load in topology data
+	// load in topography data
 	var err error
 	d.ds, err = gdal.Open(path, gdal.ReadOnly)
 	if err != nil {
@@ -57,7 +57,7 @@ func NewDataset(path string, loadIntoRam bool) (*Dataset, error) {
 	d.dtype = d.ds.RasterBand(1).RasterDataType()
 
 	if loadIntoRam {
-		err = d.loadIntoRAM()
+		err = d.loadIntoRAM(isServer)
 		d.ds.Close()
 	} else {
 		d.data = nil
