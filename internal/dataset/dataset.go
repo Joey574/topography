@@ -30,8 +30,9 @@ type Dataset struct {
 	gt  [6]float64
 	igt [6]float64
 
-	rasterX int
-	rasterY int
+	rasterX     int
+	rasterY     int
+	aspectRatio float64
 
 	data []byte
 
@@ -54,6 +55,7 @@ func NewDataset(path string, loadIntoRam bool, isServer bool) (*Dataset, error) 
 	d.igt = d.ds.InvGeoTransform()
 	d.rasterX = d.ds.RasterXSize()
 	d.rasterY = d.ds.RasterYSize()
+	d.aspectRatio = float64(d.rasterX) / float64(d.rasterY)
 	d.dtype = d.ds.RasterBand(1).RasterDataType()
 
 	if loadIntoRam {
@@ -73,10 +75,10 @@ func (d *Dataset) Close() {
 }
 
 func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) error {
-	log.FLog(stream_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
+	log.FLog(stream_log, req.Resolution, verticesFor(req.Resolution, d.aspectRatio))
 
 	if writeHeader {
-		v := uint32((req.Resolution + 1) * (req.Resolution + 1))
+		v := verticesFor(req.Resolution, d.aspectRatio)
 		if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&v)), 4)); err != nil {
 			return err
 		}
@@ -88,7 +90,7 @@ func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) er
 // Generates a response based on the provided request and returns a response object and an error
 // Internally it wraps StreamResponse with a writer to the response object
 func (d *Dataset) GenerateResponse(req *Request) (*Response, error) {
-	resp := NewResponse(req)
+	resp := NewResponse(req, float64(d.rasterX)/float64(d.rasterY))
 	log.FLog(generation_log, resp.Resolution, resp.VertexCount)
 
 	ptr := unsafe.SliceData(resp.Displacements)

@@ -1,6 +1,7 @@
 package dataset
 
 import (
+	"fmt"
 	"io"
 	"topography/v2/internal/log"
 	"unsafe"
@@ -15,7 +16,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 		return internalError()
 	}
 
-	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution)
+	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution) * d.aspectRatio
 	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(req.Resolution)
 
 	// invalid parameters
@@ -29,7 +30,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 
 	bpp := d.bytesPerPoint()
 
-	for i := 0; i <= req.Resolution; i++ {
+	for i := 0; i <= int(float64(req.Resolution)/d.aspectRatio); i++ {
 
 		// handle axis request
 		latidx := i
@@ -64,7 +65,7 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 		}
 	}
 
-	log.FLog(response_comp_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
+	log.FLog(response_comp_log, req.Resolution, verticesFor(req.Resolution, d.aspectRatio))
 	return nil
 }
 
@@ -74,10 +75,9 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 		return internalError()
 	}
 
-	dlat := (req.LatitudeEnd - req.LatitudeStart)
-	dlng := (req.LongitudeEnd - req.LongitudeStart)
+	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution) * d.aspectRatio
+	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(req.Resolution)
 
-	// invalid parameters
 	if dlat < 0 || dlng < 0 {
 		log.FLog(general_error, "invalid request")
 		return invalidRequest(req)
@@ -86,21 +86,9 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	// longitude has a total range of 360 degrees
-	// first we scale to [0,1] by dividing by 360
-	// we then compute how many points this range
-	// covers by scaling by the dataset rasterX
-	lng_scale := dlng / 360.0
-	lng_points := int(lng_scale * float64(d.rasterX))
+	scratch := make([]byte, d.bytesPerPoint())
 
-	// resolution is brought into the equation after we've
-	// done proper scaling in lng_scale and lng_points
-	dlat /= float64(req.Resolution)
-	dlng /= float64(req.Resolution)
-
-	buf := make([]byte, int(lng_points)*d.bytesPerPoint())
-
-	for i := 0; i <= req.Resolution; i++ {
+	for i := 0; i <= int(float64(req.Resolution)/d.aspectRatio); i++ {
 
 		// handle axis request
 		latidx := i
@@ -108,23 +96,6 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 			latidx = req.Resolution - i
 		}
 		lat := req.LatitudeStart + float64(latidx)*dlat
-
-		// get pixel information
-		px, py := d.toPixel(lat, req.LongitudeStart)
-
-		// advise read to gdal dataset
-		err := d.ds.AdviseRead(gdal.Read, px, py, lng_points, 1, lng_points, 1, d.dtype, 1, []int{1}, nil)
-		if err != nil {
-			log.FLog(general_error, err)
-			return err
-		}
-
-		// read points into buf
-		err = d.ds.BasicRead(px, py, lng_points, 1, []int{1}, buf)
-		if err != nil {
-			log.FLog(general_error, err)
-			return err
-		}
 
 		var f float32
 		for j := 0; j <= req.Resolution; j++ {
@@ -136,13 +107,18 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 			}
 			lon := req.LongitudeStart + float64(lngidx)*dlng
 
-			pxlng, _ := d.toPixel(lat, lon)
-			offset := (pxlng - px) * d.bytesPerPoint()
+			// get pixel information
+			px, py := d.toPixel(lat, lon)
+
+			if err := d.ds.BasicRead(px, py, 1, 1, []int{1}, scratch); err != nil {
+				log.FLog(general_error, err)
+				return err
+			}
 
 			if d.dtype == _FLOAT_16 {
-				f = float16.Frombits(*(*uint16)(unsafe.Pointer(&buf[offset]))).Float32()
+				f = float16.Frombits(*(*uint16)(unsafe.Pointer(&scratch[0]))).Float32()
 			} else {
-				f = *(*float32)(unsafe.Pointer(&buf[offset]))
+				f = *(*float32)(unsafe.Pointer(&scratch[0]))
 			}
 
 			if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&f)), 4)); err != nil {
@@ -152,24 +128,30 @@ func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
 		}
 	}
 
-	log.FLog(response_comp_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
+	log.FLog(response_comp_log, req.Resolution, verticesFor(req.Resolution, d.aspectRatio))
 	return nil
 
 }
 
 func (d *Dataset) loadIntoRAM(isServer bool) error {
 	if isServer {
+		aspectRatio := float64(d.rasterX) / float64(d.rasterY)
+		newRasterY := MAX_ONLINE_RESOLUTION
+		newRasterX := int(float64(MAX_ONLINE_RESOLUTION) * aspectRatio)
+
 		req := &Request{
-			Resolution:     MAX_ONLINE_RESOLUTION,
+			Resolution:     newRasterY,
 			LatitudeStart:  -90.0,
 			LatitudeEnd:    90.0,
 			LongitudeStart: -180.0,
 			LongitudeEnd:   180.0,
+			UpAxis:         true,
+			SideAxis:       false,
 		}
 
-		aspectRatio := float64(d.rasterX) / float64(d.rasterY)
-		newRasterY := MAX_ONLINE_RESOLUTION
-		newRasterX := int(float64(MAX_ONLINE_RESOLUTION) * aspectRatio)
+		fmt.Printf("org: %d x %d\n", d.rasterX, d.rasterY)
+		fmt.Printf("new: %d x %d\n", newRasterX, newRasterY)
+		fmt.Printf("a/r: %.2f\n", aspectRatio)
 
 		resp, err := d.GenerateResponse(req)
 		if err != nil {
@@ -177,8 +159,15 @@ func (d *Dataset) loadIntoRAM(isServer bool) error {
 		}
 
 		// internally resize dataset to match new resolution
-		d.gt = d.scaleGeoTransform(d.gt, d.rasterX, d.rasterY, newRasterX, newRasterY)
+
+		fmt.Println("ogt: ", d.gt)
+		fmt.Println("oigt:", d.igt)
+
+		d.gt = scaleGeoTransform(d.gt, d.rasterX, d.rasterY, newRasterX, newRasterY)
 		d.igt = gdal.InvGeoTransform(d.gt)
+
+		fmt.Println("mgt: ", d.gt)
+		fmt.Println("migt:", d.igt)
 
 		d.rasterX = newRasterX
 		d.rasterY = newRasterY
@@ -219,7 +208,7 @@ func (d *Dataset) bytesPerPoint() int {
 	}
 }
 
-func (d *Dataset) scaleGeoTransform(ogt [6]float64, ox, oy, nx, ny int) [6]float64 {
+func scaleGeoTransform(ogt [6]float64, ox, oy, nx, ny int) [6]float64 {
 	scaleX := float64(nx) / float64(ox)
 	scaleY := float64(ny) / float64(oy)
 
@@ -231,4 +220,8 @@ func (d *Dataset) scaleGeoTransform(ogt [6]float64, ox, oy, nx, ny int) [6]float
 		ogt[4] / scaleY,
 		ogt[5] / scaleY,
 	}
+}
+
+func verticesFor(res int, ar float64) int {
+	return (res + 1) * int(float64(res+1)*ar)
 }

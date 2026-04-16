@@ -9,13 +9,13 @@ type Response struct {
 	DataSource    string    `json:"data_source"`
 }
 
-func NewResponse(req *Request) *Response {
-	v := uint((req.Resolution + 1) * (req.Resolution + 1))
+func NewResponse(req *Request, ar float64) *Response {
+	v := verticesFor(req.Resolution, ar)
 
 	return &Response{
 		Displacements: make([]float32, 0, v),
 		Resolution:    req.Resolution,
-		VertexCount:   v,
+		VertexCount:   uint(v),
 		DataSource:    source,
 	}
 }
