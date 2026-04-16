@@ -7,6 +7,7 @@ BUILDFLAGS="-tags=netgo,osusergo -buildmode=pie -buildvcs=false -trimpath"
 
 OUTPUT="./bin/topography"
 
+mkdir -p ./min
 cp -r ./src/* ./min
 if command -v minify >/dev/null 2>&1; then
     minify -q -r -i ./min
