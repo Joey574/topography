@@ -121,9 +121,9 @@ func Render(
 	z := math.Cos(lat) * math.Sin(lng)
 
 	light := pt.NewSphere(
-		pt.V(x*6, y*5, z*5),
+		pt.V(x*8, y*5, z*5),
 		1,
-		pt.LightMaterial(pt.White, 10),
+		pt.LightMaterial(pt.White, 20),
 	)
 	scene.Add(light)
 
@@ -137,8 +137,9 @@ func Render(
 	sampler := pt.NewSampler(4, 4)
 	renderer := pt.NewRenderer(&scene, &camera, sampler, width, height)
 
-	renderer.AdaptiveSamples = 32
-	renderer.SamplesPerPixel = 1
+	renderer.AdaptiveSamples = 128
+	renderer.SamplesPerPixel = 4
+	renderer.FireflySamples = 4
 
 	renderer.NumCPU = cores
 	renderer.IterativeRender(dir+"out_%03d.png", iterations)
