@@ -25,7 +25,7 @@ type Args struct {
 	Render bool `long:"render"`
 	Disk   bool `long:"disk"`
 
-	Samples    int     `short:"s" long:"samples" default:"45200"`
+	Samples    int     `short:"s" long:"samples" default:"86400"`
 	Iterations int     `short:"i" long:"iterations" default:"100"`
 	Width      int     `long:"width" default:"800"`
 	Height     int     `long:"height" default:"800"`
