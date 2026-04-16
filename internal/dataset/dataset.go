@@ -2,12 +2,11 @@ package dataset
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io"
 	"math"
 	"path/filepath"
 	"sync"
-	"topology/v2/internal/log"
+	"topography/v2/internal/log"
 	"unsafe"
 
 	gdal "github.com/seerai/godal"
@@ -77,9 +76,8 @@ func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) er
 	log.FLog(stream_log, req.Resolution, (req.Resolution+1)*(req.Resolution+1))
 
 	if writeHeader {
-		header := make([]byte, 4)
-		binary.LittleEndian.PutUint32(header[:], uint32((req.Resolution+1)*(req.Resolution+1)))
-		if _, err := w.Write(header); err != nil {
+		v := uint32((req.Resolution + 1) * (req.Resolution + 1))
+		if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&v)), 4)); err != nil {
 			return err
 		}
 	}

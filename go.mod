@@ -1,4 +1,4 @@
-module topology/v2
+module topography/v2
 
 go 1.26.1
 
