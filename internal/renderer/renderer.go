@@ -90,20 +90,20 @@ func Render(
 
 	resp, _ := ds.GenerateResponse(&dataset.Request{
 		Resolution:     resolution,
-		UpAxis:         true,
-		SideAxis:       true,
+		UpIsNorth:      true,
+		LeftIsWest:     true,
 		LatitudeStart:  -90.0,
 		LatitudeEnd:    90.0,
 		LongitudeStart: -180.0,
 		LongitudeEnd:   180.0,
-	})
+	}, false, nil)
 
-	dataset.Normalize(resp, -1.0, 1.0)
+	//dataset.Normalize(resp, -1.0, 1.0)
 	ds.Close()
 
 	sphere := &Sphere{
 		Radius:    1.0,
-		Data:      resp.Displacements,
+		Data:      resp.Floats(),
 		Width:     resolution + 1,
 		Height:    resolution + 1,
 		MaxHeight: 0.1,

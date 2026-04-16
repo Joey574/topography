@@ -1,7 +1,10 @@
 package server
 
-const initialize_log = "[SERVER] [i] Initialized Server"
-const request_log = "[SERVER] [i] Recieved request: ip='%s', path='%s' method='%s'"
-const topography_request_log = "[SERVER] [i] Requesting topography: resolution='%d'"
+const (
+	initialize_log = "[i] [SERVER] Initialized Server"
 
-const server_error = "[SERVER] [!] Error %w"
+	request_log    = "[i] [SERVER] Recieved Request: ip='%s', path='%s' method='%s'"
+	topography_log = "[i] [SERVER] Requesting Topography: resolution='%d'"
+
+	server_error = "[!] [SERVER] %w"
+)

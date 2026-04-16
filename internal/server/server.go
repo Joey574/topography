@@ -68,6 +68,7 @@ func (s *Server) SetHandlers(fs embed.FS, d *dataset.Dataset) {
 
 	// main functionality
 	mux.Handle("GET /{$}", s.TemplateHandler(fs, "index.html"))
+	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("POST /topography", s.TopographyHandler(d))
 
 	// utility

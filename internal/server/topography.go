@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
@@ -13,10 +14,18 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 			return
 		}
 
-		var req *dataset.Request
-		var err error
+		// basic request outline
+		req := &dataset.Request{
+			LatitudeStart:  -90.0,
+			LatitudeEnd:    90.0,
+			LongitudeStart: -180.0,
+			LongitudeEnd:   180.0,
+			UpIsNorth:      true,
+			LeftIsWest:     false,
+		}
 
-		if req, err = dataset.NewRequest(r.Body); err != nil {
+		// parse out the requested resolution
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -27,20 +36,11 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 			return
 		}
 
-		// as of right now request always encompass the entire planet
-		req.LatitudeStart = -90.0
-		req.LatitudeEnd = 90.0
-
-		req.LongitudeStart = -180.0
-		req.LongitudeEnd = 180.0
-
-		// we also want to set this for three js
-		req.UpAxis = true
-		req.SideAxis = false
-
-		log.FLog(topography_request_log, req.Resolution)
+		log.FLog(topography_log, req.Resolution)
 		w.Header().Set("Content-Type", "application/octet-stream")
-		if err = d.StreamResponse(req, w, true); err != nil {
+
+		if _, err := d.GenerateResponse(req, true, w); err != nil {
+			log.FLog(server_error, err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
