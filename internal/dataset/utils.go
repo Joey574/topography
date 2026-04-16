@@ -1,7 +1,6 @@
 package dataset
 
 import (
-	"fmt"
 	"io"
 	"topography/v2/internal/log"
 	"unsafe"
@@ -10,52 +9,33 @@ import (
 	"github.com/x448/float16"
 )
 
-func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
-	if d.data == nil {
-		log.FLog(general_error, "dataset is nil")
-		return internalError()
-	}
+func (d *Dataset) bulkElevationRead(req *Request, w io.Writer) error {
+	resX := req.Resolution
+	resY := int(float64(req.Resolution) * d.aspectRatio)
 
-	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution) * d.aspectRatio
-	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(req.Resolution)
+	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(resY)
+	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(resX)
 
-	// invalid parameters
-	if dlat < 0 || dlng < 0 {
-		log.FLog(general_error, "invalid request")
-		return invalidRequest(req)
-	}
-
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	bpp := d.bytesPerPoint()
-
-	for i := 0; i <= int(float64(req.Resolution)/d.aspectRatio); i++ {
-
-		// handle axis request
-		latidx := i
-		if req.UpAxis {
-			latidx = req.Resolution - i
+	form := func(idx, res int, flip bool, start, delta float64) float64 {
+		i := idx
+		if flip {
+			i = res - idx
 		}
-		lat := req.LatitudeStart + float64(latidx)*dlat
+		return start + float64(i)*delta
+	}
 
-		for j := 0; j <= req.Resolution; j++ {
+	for i := 0; i <= resY; i++ {
+		lat := form(i, resY, req.UpAxis, req.LatitudeStart, dlat)
 
-			// handle axis request
-			lngidx := j
-			if req.SideAxis {
-				lngidx = req.Resolution - j
-			}
-			lon := req.LongitudeStart + float64(lngidx)*dlng
+		for j := 0; j <= resX; j++ {
+			lon := form(j, resX, req.SideAxis, req.LongitudeStart, dlng)
 
 			px, py := d.toPixel(lat, lon)
-			jdx := (py*d.rasterX + px) * bpp
 
-			var f float32
-			if d.dtype == _FLOAT_16 {
-				f = float16.Frombits(*(*uint16)(unsafe.Pointer(&d.data[jdx]))).Float32()
-			} else {
-				f = *(*float32)(unsafe.Pointer(&d.data[jdx]))
+			f, err := d.elevationAt(px, py)
+			if err != nil {
+				log.FLog(general_error, err)
+				return err
 			}
 
 			if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&f)), 4)); err != nil {
@@ -65,82 +45,42 @@ func (d *Dataset) bulkElevationReadFromRAM(req *Request, w io.Writer) error {
 		}
 	}
 
-	log.FLog(response_comp_log, req.Resolution, verticesFor(req.Resolution, d.aspectRatio))
+	log.FLog(response_comp_log, req.Resolution, (resX+1)*(resY+1))
 	return nil
 }
 
-func (d *Dataset) bulkElevationReadFromDisk(req *Request, w io.Writer) error {
-	if d.data != nil {
-		log.FLog(general_error, "trying to load from disk when ram is available")
-		return internalError()
-	}
+func (d *Dataset) elevationAt(px, py int) (float32, error) {
+	var f float32
 
-	dlat := (req.LatitudeEnd - req.LatitudeStart) / float64(req.Resolution) * d.aspectRatio
-	dlng := (req.LongitudeEnd - req.LongitudeStart) / float64(req.Resolution)
+	bpp := d.bytesPerPoint()
+	ptr := unsafe.Pointer(&f)
 
-	if dlat < 0 || dlng < 0 {
-		log.FLog(general_error, "invalid request")
-		return invalidRequest(req)
-	}
-
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	scratch := make([]byte, d.bytesPerPoint())
-
-	for i := 0; i <= int(float64(req.Resolution)/d.aspectRatio); i++ {
-
-		// handle axis request
-		latidx := i
-		if req.UpAxis {
-			latidx = req.Resolution - i
+	if d.data == nil {
+		if err := d.ds.BasicRead(px, py, 1, 1, []int{1}, unsafe.Slice((*byte)(ptr), bpp)); err != nil {
+			return f, err
 		}
-		lat := req.LatitudeStart + float64(latidx)*dlat
-
-		var f float32
-		for j := 0; j <= req.Resolution; j++ {
-
-			// handle axis request
-			lngidx := j
-			if req.SideAxis {
-				lngidx = req.Resolution - j
-			}
-			lon := req.LongitudeStart + float64(lngidx)*dlng
-
-			// get pixel information
-			px, py := d.toPixel(lat, lon)
-
-			if err := d.ds.BasicRead(px, py, 1, 1, []int{1}, scratch); err != nil {
-				log.FLog(general_error, err)
-				return err
-			}
-
-			if d.dtype == _FLOAT_16 {
-				f = float16.Frombits(*(*uint16)(unsafe.Pointer(&scratch[0]))).Float32()
-			} else {
-				f = *(*float32)(unsafe.Pointer(&scratch[0]))
-			}
-
-			if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&f)), 4)); err != nil {
-				log.FLog(general_error, err)
-				return err
-			}
-		}
+	} else {
+		idx := (py*d.rasterX + px) * bpp
+		ptr = unsafe.Pointer(&d.data[idx])
 	}
 
-	log.FLog(response_comp_log, req.Resolution, verticesFor(req.Resolution, d.aspectRatio))
-	return nil
+	switch d.dtype {
+	case _FLOAT_16:
+		f = float16.Frombits(*(*uint16)(ptr)).Float32()
+	case _FLOAT_32:
+		f = *(*float32)(ptr)
+	}
 
+	return f, nil
 }
 
 func (d *Dataset) loadIntoRAM(isServer bool) error {
 	if isServer {
-		aspectRatio := float64(d.rasterX) / float64(d.rasterY)
-		newRasterY := MAX_ONLINE_RESOLUTION
-		newRasterX := int(float64(MAX_ONLINE_RESOLUTION) * aspectRatio)
+		newRasterX := MAX_ONLINE_RESOLUTION
+		newRasterY := int(float64(MAX_ONLINE_RESOLUTION) * d.aspectRatio)
 
 		req := &Request{
-			Resolution:     newRasterY,
+			Resolution:     MAX_ONLINE_RESOLUTION,
 			LatitudeStart:  -90.0,
 			LatitudeEnd:    90.0,
 			LongitudeStart: -180.0,
@@ -149,26 +89,14 @@ func (d *Dataset) loadIntoRAM(isServer bool) error {
 			SideAxis:       false,
 		}
 
-		fmt.Printf("org: %d x %d\n", d.rasterX, d.rasterY)
-		fmt.Printf("new: %d x %d\n", newRasterX, newRasterY)
-		fmt.Printf("a/r: %.2f\n", aspectRatio)
-
 		resp, err := d.GenerateResponse(req)
 		if err != nil {
 			return err
 		}
 
 		// internally resize dataset to match new resolution
-
-		fmt.Println("ogt: ", d.gt)
-		fmt.Println("oigt:", d.igt)
-
 		d.gt = scaleGeoTransform(d.gt, d.rasterX, d.rasterY, newRasterX, newRasterY)
 		d.igt = gdal.InvGeoTransform(d.gt)
-
-		fmt.Println("mgt: ", d.gt)
-		fmt.Println("migt:", d.igt)
-
 		d.rasterX = newRasterX
 		d.rasterY = newRasterY
 		d.data = unsafe.Slice((*byte)(unsafe.Pointer(&resp.Displacements[0])), len(resp.Displacements)*4)
@@ -223,5 +151,5 @@ func scaleGeoTransform(ogt [6]float64, ox, oy, nx, ny int) [6]float64 {
 }
 
 func verticesFor(res int, ar float64) int {
-	return (res + 1) * int(float64(res+1)*ar)
+	return (res + 1) * (int(float64(res)*ar) + 1)
 }

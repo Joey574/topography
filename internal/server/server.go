@@ -29,6 +29,8 @@ func NewServer(fs embed.FS, d *dataset.Dataset) *Server {
 // Apply CSRF protections
 func (s *Server) WrapCSRF(next http.Handler) http.Handler {
 	csrf := http.NewCrossOriginProtection()
+	csrf.AddTrustedOrigin("http://localhost:8080")
+	csrf.AddTrustedOrigin("https://topoview.org")
 	return csrf.Handler(next)
 }
 

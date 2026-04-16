@@ -7,8 +7,6 @@ let settings = {
   wireframe: false,
   displacementScale: 0.10,
   resolution: 128,
-  latResolution: 64,
-  lonResolution: 128,
   autoRotate: false,
   color: 0x2a5784,
   smoothingLevel: 1,
@@ -70,7 +68,7 @@ function init() {
   controls.zoomSpeed = 1.0;
 
   setupLighting();
-  createSphere(settings.latResolution, settings.lonResolution);
+  createSphere(settings.resolution);
   setupEventListeners();
   animate();
 }
@@ -173,7 +171,7 @@ function getOrCreateMaterial(wireframe, color) {
 // Displacement is ONLY applied via the fetch button.
 // ============================================================================
 
-function createSphere(latResolution, lonResolution) {
+function createSphere(resolution) {
   if (sphere) {
     scene.remove(sphere);
     sphere.traverse(child => {
@@ -189,9 +187,9 @@ function createSphere(latResolution, lonResolution) {
   sphere.receiveShadow = true;
 
   const MAX_VERTICES_PER_SEGMENT = 50000;
-  const heightVertices = latResolution+1;
+  const heightVertices = resolution + 1;
   const maxWidthVertices = Math.floor(MAX_VERTICES_PER_SEGMENT / heightVertices) - 1;
-  const segments = Math.max(1, Math.ceil(lonResolution / maxWidthVertices));
+  const segments = Math.max(1, Math.ceil(resolution / maxWidthVertices));
 
   for (let i = 0; i < segments; i++) {
     const phi_start = (Math.PI * 2 / segments) * i;
@@ -199,8 +197,8 @@ function createSphere(latResolution, lonResolution) {
 
     const geometry = new THREE.SphereGeometry(
       1,
-      lonResolution / segments,
-      latResolution,
+      resolution / segments,
+      resolution,
       phi_start,
       phi_length
     )
@@ -210,9 +208,7 @@ function createSphere(latResolution, lonResolution) {
     sphere.add(mesh);
   }
   scene.add(sphere);
-  settings.latResolution = latResolution;
-  settings.lonResolution = lonResolution;
-  settings.resolution = lonResolution;
+  settings.resolution = resolution;
 
   let totalVertices = 0;
   sphere.children.forEach(mesh => {
@@ -263,11 +259,11 @@ function normalizeDisplacements(displacements) {
 // Only called explicitly after a successful backend fetch
 // ============================================================================
 
-function smoothDisplacementData(displacements, latResolution, lonResolution, iterations = 1) {
+function smoothDisplacementData(displacements, resolution, iterations = 1) {
   if (iterations === 0) return displacements;
 
-  const latDivisions = latResolution + 1;
-  const lonDivisions = lonResolution + 1;
+  const latDivisions = resolution + 1;
+  const lonDivisions = resolution + 1;
   
   let current = new Float32Array(displacements);
   let next = new Float32Array(displacements.length);
@@ -288,8 +284,8 @@ function smoothDisplacementData(displacements, latResolution, lonResolution, ite
         // Sample 8 neighbors with wrapping at poles and longitude seam
         const neighbors = [
           [-1, -1], [-1, 0], [-1, 1],  // above
-          [0,  -1],          [0, 1],   // sides
-          [1,  -1], [1,  0], [1, 1]    // below
+          [0, -1],           [0, 1],   // sides
+          [1, -1],  [1, 0],  [1, 1]    // below
         ];
 
         neighbors.forEach(([dLat, dLon], i) => {
@@ -324,8 +320,8 @@ function applyBackendDisplacement(data) {
 
   isApplyingDisplacement = true;
 
-  const latResolution = data.latResolution;
-  const lonResolution = data.lonResolution;
+  const segments = sphere.children.length;
+  const fullResolution = settings.resolution;
   
   // Normalize the raw displacement data first
   const normalizedDisplacements = normalizeDisplacements(data.displacements)
@@ -333,13 +329,12 @@ function applyBackendDisplacement(data) {
   // Apply smoothing to the normalized data
   const smoothedDisplacements = smoothDisplacementData(
     normalizedDisplacements, 
-    latResolution,
-    lonResolution,
-    data.smoothingLevel
+    fullResolution, 
+    settings.smoothingLevel
   );
 
-  const latDivisions = latResolution + 1;
-  const lonDivisions = lonResolution + 1;
+  const latDivisions = fullResolution + 1;
+  const lonDivisions = fullResolution + 1;
 
   sphere.children.forEach((mesh, segmentIndex) => {
     const geometry = mesh.geometry;
@@ -354,8 +349,8 @@ function applyBackendDisplacement(data) {
       const phi = Math.atan2(x, z);
       const theta = Math.acos(Math.max(-1, Math.min(1, y)));
 
-      const latIndex = Math.round((theta / Math.PI) * latResolution);
-      const lonIndex = Math.round(((phi + Math.PI) / (Math.PI * 2)) * lonResolution) % lonDivisions;
+      const latIndex = Math.round((theta / Math.PI) * fullResolution);
+      const lonIndex = Math.round(((phi + Math.PI) / (Math.PI * 2)) * fullResolution) % lonDivisions;
 
       const backendIndex = latIndex * lonDivisions + lonIndex;
       displacementArray[i] = smoothedDisplacements[backendIndex] || 0;
@@ -437,28 +432,21 @@ async function fetchTopographyData() {
     }
 
     const buffer = await response.arrayBuffer();
-    const view = new DataView(buffer);
 
-    const vertexCount = view.getUint32(0, true);
-    const latPoints = view.getUint32(4, true);
-    const lonPoints = view.getUint32(8, true);
-
-    const displacements = new Float32Array(buffer, 4, vertexCount);
+    const view = new DataView(buffer)
+    const vertexCount = view.getUint32(0, true)
+    const displacements = new Float32Array(buffer, 4, vertexCount)
     
     backendData = {
       displacements: displacements,
       resolution: settings.resolution,
-      latResolution: latPoints - 1,
-      lonResolution: lonPoints - 1,
       metadata: {
-        vertex_count: vertexCount,
-        lat_points: latPoints,
-        lon_points: lonPoints
+        vertex_count: vertexCount
       },
     };
 
     // we recreate geometry only when a fetch has been performed
-    createSphere(backendData.latResolution, backendData.lonResolution);
+    createSphere(settings.resolution)
     applyBackendDisplacement(backendData);
   } catch (error) {
     alert(`Backend connection failed:\n${error.message}`);
@@ -509,6 +497,7 @@ function onResolutionChange(e) {
 
   // we don't recreate geometry here, so the user
   // doesn't experience slowdown until requesting
+  // the data
   settings.resolution = newResolution
 }
 

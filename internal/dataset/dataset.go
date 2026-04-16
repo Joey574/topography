@@ -55,7 +55,7 @@ func NewDataset(path string, loadIntoRam bool, isServer bool) (*Dataset, error) 
 	d.igt = d.ds.InvGeoTransform()
 	d.rasterX = d.ds.RasterXSize()
 	d.rasterY = d.ds.RasterYSize()
-	d.aspectRatio = float64(d.rasterX) / float64(d.rasterY)
+	d.aspectRatio = float64(d.rasterY) / float64(d.rasterX)
 	d.dtype = d.ds.RasterBand(1).RasterDataType()
 
 	if loadIntoRam {
@@ -78,8 +78,19 @@ func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) er
 	log.FLog(stream_log, req.Resolution, verticesFor(req.Resolution, d.aspectRatio))
 
 	if writeHeader {
-		v := verticesFor(req.Resolution, d.aspectRatio)
+		lonPoints := req.Resolution
+		latPoints := int(float64(req.Resolution) * d.aspectRatio)
+		v := (lonPoints + 1) * (latPoints + 1)
+
 		if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&v)), 4)); err != nil {
+			return err
+		}
+
+		if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&latPoints)), 4)); err != nil {
+			return err
+		}
+
+		if _, err := w.Write(unsafe.Slice((*byte)(unsafe.Pointer(&lonPoints)), 4)); err != nil {
 			return err
 		}
 	}
@@ -90,7 +101,7 @@ func (d *Dataset) StreamResponse(req *Request, w io.Writer, writeHeader bool) er
 // Generates a response based on the provided request and returns a response object and an error
 // Internally it wraps StreamResponse with a writer to the response object
 func (d *Dataset) GenerateResponse(req *Request) (*Response, error) {
-	resp := NewResponse(req, float64(d.rasterX)/float64(d.rasterY))
+	resp := NewResponse(req, d.aspectRatio)
 	log.FLog(generation_log, resp.Resolution, resp.VertexCount)
 
 	ptr := unsafe.SliceData(resp.Displacements)
@@ -130,10 +141,17 @@ func Normalize(resp *Response, a float32, b float32) {
 	}
 }
 
-func (d *Dataset) bulkElevationRead(req *Request, w io.Writer) error {
-	if d.data != nil {
-		return d.bulkElevationReadFromRAM(req, w)
+func (d *Dataset) BulkElevationRead(req *Request, w io.Writer) error {
+	// verify request validity
+	if req.LatitudeEnd-req.LatitudeStart < 0 ||
+		req.LongitudeEnd-req.LongitudeStart < 0 {
+
+		log.FLog(general_error, "invalid request")
+		return invalidRequest(req)
 	}
 
-	return d.bulkElevationReadFromDisk(req, w)
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	return d.bulkElevationRead(req, w)
 }
