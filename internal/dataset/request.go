@@ -33,7 +33,7 @@ type Response struct {
 
 func NewResponse(req *Request, m *MetaData, w io.Writer) *Response {
 	resX := req.Resolution
-	resY := int(float64(req.Resolution) * m.AspectRatio)
+	resY := int(float64(req.Resolution) / m.AspectRatio)
 	verts := resX * resY
 
 	// a value for w was not passed, meaning

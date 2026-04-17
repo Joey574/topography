@@ -32,7 +32,7 @@ type MetaData struct {
 	TypeBytes   int
 }
 
-func NewDataset(path string, loadIntoRam, truncateData bool) (*Dataset, error) {
+func NewDataset(path string, loadIntoRam, downsample bool) (*Dataset, error) {
 	d := &Dataset{}
 
 	// load in topography data
@@ -47,11 +47,13 @@ func NewDataset(path string, loadIntoRam, truncateData bool) (*Dataset, error) {
 	d.meta = newMetaData(&d.ds)
 
 	if loadIntoRam {
-		err = d.loadIntoRAM(truncateData)
+		err = d.loadIntoRAM(downsample)
 		d.ds.Close()
+		gdal.CleanupOGR()
+		gdal.CleanupSR()
 	}
 
-	log.FLog(initialize_log, loadIntoRam, truncateData)
+	log.FLog(initialize_log, loadIntoRam, downsample)
 	return d, nil
 }
 

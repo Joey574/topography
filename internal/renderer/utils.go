@@ -1,21 +1,28 @@
 package renderer
 
 import (
-	"fmt"
+	"topography/v2/internal/log"
 	"unsafe"
 
 	gdal "github.com/seerai/godal"
 	"github.com/x448/float16"
 )
 
+const (
+	_FLOAT_32 = gdal.Float32
+	_FLOAT_16 = gdal.DataType(15)
+)
+
 func normalize(xs []byte, t gdal.DataType, a, b float32) {
+	log.FLog(normalize_log, t.Name())
+
 	switch t {
-	case gdal.Float32:
-		fmt.Println("normalizing float32")
+	case _FLOAT_32:
 		normalizef32(unsafe.Slice((*float32)(unsafe.Pointer(&xs[0])), len(xs)/4), a, b)
-	case 15:
-		fmt.Println("normalizing float16")
+	case _FLOAT_16:
 		normalizef16(unsafe.Slice((*float16.Float16)(unsafe.Pointer(&xs[0])), len(xs)/2), a, b)
+	default:
+		log.FLog(render_error, "unrecognized data type!")
 	}
 }
 

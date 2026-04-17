@@ -6,16 +6,18 @@ import (
 	gdal "github.com/seerai/godal"
 )
 
-func (d *Dataset) loadIntoRAM(truncateData bool) error {
+func (d *Dataset) loadIntoRAM(downsample bool) error {
+	gdal.SetCacheMax(512 * 1024 * 1024)
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if truncateData {
+	if downsample {
 		resolution := MAX_ONLINE_RESOLUTION
-
 		newRasterX := resolution
-		newRasterY := int(float64(resolution) * d.meta.AspectRatio)
+		newRasterY := int(float64(resolution) / d.meta.AspectRatio)
+
+		log.FLog(downsample_log, newRasterX, newRasterY)
 
 		req := &Request{
 			Resolution:     resolution,
@@ -23,7 +25,7 @@ func (d *Dataset) loadIntoRAM(truncateData bool) error {
 			LatitudeEnd:    90.0,
 			LongitudeStart: -180.0,
 			LongitudeEnd:   180.0,
-			UpIsNorth:      true,
+			UpIsNorth:      false,
 			LeftIsWest:     false,
 		}
 

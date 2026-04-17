@@ -1,11 +1,10 @@
 package renderer
 
 import (
-	"fmt"
-	"log"
 	"math"
 	"os"
 	"topography/v2/internal/dataset"
+	"topography/v2/internal/log"
 
 	"github.com/Joey574/pt/pt"
 )
@@ -23,9 +22,11 @@ func Render(
 ) {
 	err := os.MkdirAll(dir, 0744)
 	if err != nil {
-		log.Fatalln(err)
+		log.FLog(render_error, err)
+		return
 	}
 
+	log.FLog(initialize_log)
 	scene := pt.Scene{}
 
 	resp, err := ds.GenerateResponse(&dataset.Request{
@@ -38,14 +39,13 @@ func Render(
 		LongitudeEnd:   180.0,
 	}, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		log.FLog(render_error, err)
+		return
 	}
 	ds.Close()
 
 	data := resp.Bytes()
-	fmt.Println(data[0])
 	normalize(data, resp.Type, -1.0, 1.0)
-	fmt.Println(data[0])
 
 	sphere := &Sphere{
 		Radius:    1.0,
@@ -53,7 +53,7 @@ func Render(
 		Type:      resp.Type,
 		Width:     resp.ResolutionX,
 		Height:    resp.ResolutionY,
-		MaxHeight: 0.05,
+		MaxHeight: 0.1,
 	}
 
 	material := pt.GlossyMaterial(pt.HexColor(0x33BCFF), 1.5, pt.Radians(20))
@@ -87,7 +87,9 @@ func Render(
 	renderer.AdaptiveSamples = 128
 	renderer.SamplesPerPixel = 4
 	renderer.FireflySamples = 4
-
+	renderer.Verbose = false
 	renderer.NumCPU = cores
+
+	log.FLog(start_log)
 	renderer.IterativeRender(dir+"out_%03d.png", iterations)
 }

@@ -40,7 +40,6 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 	}
 
 	buf := make([]byte, d.meta.TypeBytes)
-
 	for y := 0; y < res.ResolutionY; y++ {
 		lat := valueAt(y, res.ResolutionY, res.Request.UpIsNorth, res.Request.LatitudeStart, latDelta)
 
@@ -48,14 +47,12 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 			lng := valueAt(x, res.ResolutionX, res.Request.LeftIsWest, res.Request.LongitudeStart, lngDelta)
 
 			px, py := d.ToPixel(lat, lng)
-
 			err := d.ElevationAt(px, py, buf)
 			if err != nil {
 				log.FLog(dataset_error, err)
 				return err
 			}
 
-			//fmt.Println("[BULK]", *(*float32)(unsafe.Pointer(&buf[0])))
 			if _, err := res.Writer.Write(buf); err != nil {
 				log.FLog(dataset_error, err)
 				return err
@@ -66,7 +63,14 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 	return nil
 }
 
+// Reads the data at the pixel coords px and py into buf
+// Returns an error is px or py are out of range
+// Buf must be properly sized for the underlying datatype
 func (d *Dataset) ElevationAt(px, py int, buf []byte) error {
+	if len(buf) != d.meta.TypeBytes {
+		return fmt.Errorf("len(buf) == %d, expected %d", len(buf), d.meta.TypeBytes)
+	}
+
 	if d.data == nil {
 		return d.elevationAtDisk(px, py, buf)
 	}
@@ -74,6 +78,9 @@ func (d *Dataset) ElevationAt(px, py int, buf []byte) error {
 	return d.elevationAtRAM(px, py, buf)
 }
 
+// Assumes buf is sized for length of datatype
+// Assumes d.data != nil
+// Errors if px or py are out of range
 func (d *Dataset) elevationAtRAM(px, py int, buf []byte) error {
 	idx := (py*d.meta.RasterX + px) * d.meta.TypeBytes
 	if idx > len(d.data) {
@@ -84,10 +91,12 @@ func (d *Dataset) elevationAtRAM(px, py int, buf []byte) error {
 		buf[i] = d.data[idx+i]
 	}
 
-	//fmt.Println("[RAM]", *(*float32)(unsafe.Pointer(&buf[0])))
 	return nil
 }
 
+// Assumes buf is sized for length of datatype
+// Assumes d.data == nil and database connection is open
+// Errors if database read errors
 func (d *Dataset) elevationAtDisk(px, py int, buf []byte) error {
 	if err := d.ds.BasicRead(px, py, 1, 1, elevationBand, buf); err != nil {
 		log.FLog(dataset_error, err)
