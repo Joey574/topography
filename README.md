@@ -1,14 +1,17 @@
 # Topography
 This is a viewer that helps visualize the topography of the earth, both online and offline rendering are supported.
 
-#### Online Examples
+### Online Examples
 ![africa_sample](renders/online_sample_africa.png)
 ![india_sample](renders/online_sample_india.png)
 ![purple_sample](renders/online_sample_purple.png)
+<br>
+<br>
 
-#### Offline Examples
-![2k_sample](renders/2k_sample.png)
+### Offline Examples
 ![800_sample](renders/800_sample.png)
+![2k_sample](renders/2k_sample.png)
+![2k_sidelight_sample_2](renders/2k_sidelight_sample_2.png)
 
 ## Setup
 **To properly use this tool it requires some setup**

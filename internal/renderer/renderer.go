@@ -49,7 +49,7 @@ func Render(
 		Data:      data,
 		Width:     resp.ResolutionX,
 		Height:    resp.ResolutionY,
-		MaxHeight: 0.1,
+		MaxHeight: 0.05,
 	}
 
 	material := pt.GlossyMaterial(pt.HexColor(0x33BCFF), 1.5, pt.Radians(20))
