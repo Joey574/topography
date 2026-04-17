@@ -4,6 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"topography/v2/internal/dataset"
+	"topography/v2/internal/log"
+	"unsafe"
+
+	gdal "github.com/seerai/godal"
+	"github.com/x448/float16"
+)
+
+const (
+	_FLOAT_32 = gdal.Float32
+	_FLOAT_16 = gdal.DataType(15)
 )
 
 func (s *Server) HealthCheck(d *dataset.Dataset) http.HandlerFunc {
@@ -29,15 +39,30 @@ func (s *Server) HealthCheck(d *dataset.Dataset) http.HandlerFunc {
 
 		var err error
 
-		// for i := range locs {
-		// 	px, py := d.ToPixel(locs[i].Latitude, locs[i].Longitude)
+		t := d.Type()
+		buf := make([]byte, t.Size()/8)
 
-		// 	locs[i].Elevation, err = d.ElevationAt(px, py)
-		// 	if err != nil {
-		// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 		return
-		// 	}
-		// }
+		for i := range locs {
+			// TODO : pixel thing appears to be off :/
+			px, py := d.ToPixel(locs[i].Latitude, locs[i].Longitude)
+			err = d.ElevationAt(px, py, buf)
+			if err != nil {
+				log.FLog(server_error, err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			switch t {
+			case _FLOAT_32:
+				locs[i].Elevation = *(*float32)(unsafe.Pointer(&buf[0]))
+			case _FLOAT_16:
+				locs[i].Elevation = float16.Frombits(*(*uint16)(unsafe.Pointer(&buf[0]))).Float32()
+			default:
+				log.FLog(server_error, "unrecognized data type")
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+		}
 
 		bytes, err := json.Marshal(locs)
 		if err != nil {

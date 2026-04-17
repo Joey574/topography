@@ -32,11 +32,11 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 	lngDelta := lngDiff / float64(res.ResolutionX)
 
 	valueAt := func(i, res int, flip bool, start, delta float64) float64 {
-		idx := i
 		if flip {
-			idx = res - i
+			return start + float64(res-1-i)*delta
+		} else {
+			return start + float64(i)*delta
 		}
-		return start + float64(idx)*delta
 	}
 
 	buf := make([]byte, d.meta.TypeBytes)

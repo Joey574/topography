@@ -69,6 +69,10 @@ func newMetaData(ds *gdal.Dataset) MetaData {
 	}
 }
 
+func (d *Dataset) Type() gdal.DataType {
+	return d.meta.Type
+}
+
 func (d *Dataset) Close() {
 	d.ds.Close()
 	d.data = nil

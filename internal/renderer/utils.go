@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"math"
 	"topography/v2/internal/log"
 	"unsafe"
 
@@ -31,12 +32,19 @@ func normalizef32(xs []float32, a, b float32) {
 	maxx := xs[0]
 
 	for i := range xs {
-		if xs[i] > maxx {
-			maxx = xs[i]
+		v := xs[i]
+
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			log.FLog(render_error, "nan / inf value encountered")
+			continue
 		}
 
-		if xs[i] < minx {
-			minx = xs[i]
+		if v > maxx {
+			maxx = v
+		}
+
+		if v < minx {
+			minx = v
 		}
 	}
 
@@ -45,7 +53,13 @@ func normalizef32(xs []float32, a, b float32) {
 
 	for i := range xs {
 		v := xs[i]
-		v = (v - minx) * ndiff * invxdiff
+
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			log.FLog(render_error, "nan / inf value encountered")
+			continue
+		}
+
+		v = a + ((v - minx) * ndiff * invxdiff)
 		xs[i] = v
 	}
 }
@@ -55,12 +69,19 @@ func normalizef16(xs []float16.Float16, a, b float32) {
 	maxx := xs[0].Float32()
 
 	for i := range xs {
-		if xs[i].Float32() > maxx {
-			maxx = xs[i].Float32()
+		v := xs[i].Float32()
+
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			log.FLog(render_error, "nan / inf value encountered")
+			continue
 		}
 
-		if xs[i].Float32() < minx {
-			minx = xs[i].Float32()
+		if v > maxx {
+			maxx = v
+		}
+
+		if v < minx {
+			minx = v
 		}
 	}
 
@@ -69,7 +90,13 @@ func normalizef16(xs []float16.Float16, a, b float32) {
 
 	for i := range xs {
 		v := xs[i].Float32()
-		v = (v - minx) * ndiff * invxdiff
+
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			log.FLog(render_error, "nan / inf value encountered")
+			continue
+		}
+
+		v = a + ((v - minx) * ndiff * invxdiff)
 		xs[i] = float16.Fromfloat32(v)
 	}
 }

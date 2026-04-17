@@ -75,7 +75,7 @@ func Render(
 	)
 
 	light := pt.NewSphere(
-		pt.V(-x*5, y*5, z*5),
+		pt.V(x*5, y*5, z*5),
 		1,
 		pt.LightMaterial(pt.White, 25),
 	)

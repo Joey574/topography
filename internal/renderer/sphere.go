@@ -78,7 +78,7 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 // BoundingBox tells the renderer where the object exists in 3D space.
 // If the ray entirely misses this box, it won't bother evaluating the SDF.
 func (s *Sphere) BoundingBox() pt.Box {
-	maxExtent := s.Radius + 11000
+	maxExtent := s.Radius + s.MaxHeight + 1e-3
 	return pt.Box{
 		Min: pt.Vector{X: -maxExtent, Y: -maxExtent, Z: -maxExtent},
 		Max: pt.Vector{X: maxExtent, Y: maxExtent, Z: maxExtent},
