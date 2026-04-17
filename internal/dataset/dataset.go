@@ -9,7 +9,7 @@ import (
 
 const (
 	MIN_ONLINE_RESOLUTION = 128
-	MAX_ONLINE_RESOLUTION = 2048
+	MAX_ONLINE_RESOLUTION = 4096
 
 	_FLOAT_32 = gdal.Float32
 	_FLOAT_16 = gdal.DataType(15) // godal does not define a float16 type, .RasterDataType tested to return the value 15
