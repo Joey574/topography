@@ -77,7 +77,7 @@ func (s *Server) SetHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux.Handle("GET /robots.txt", s.DefaultHandler(fs, "min/misc/robots.txt"))
 	mux.Handle("GET /humans.txt", s.DefaultHandler(fs, "min/misc/humans.txt"))
 	//mux.Handle("GET /sitemap.xml", nil)
-	mux.Handle("GET /favicon.ico", s.DefaultHandler(fs, "min/favicon.svg"))
+	mux.Handle("GET /favicon.ico", s.DefaultHandler(fs, "min/misc/favicon.svg"))
 	mux.Handle("GET /about", s.TemplateHandler(fs, "about.html"))
 	mux.Handle("GET /contact", s.TemplateHandler(fs, "contact.html"))
 

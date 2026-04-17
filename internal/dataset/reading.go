@@ -1,12 +1,18 @@
 package dataset
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"topography/v2/internal/log"
 	"unsafe"
 
 	"github.com/x448/float16"
+)
+
+var (
+	elevationBand = []int{1}
 )
 
 func (d *Dataset) GenerateResponse(req *Request, writeHeader bool, w io.Writer) (*Response, error) {
@@ -24,7 +30,6 @@ func (d *Dataset) GenerateResponse(req *Request, writeHeader bool, w io.Writer) 
 }
 
 func (d *Dataset) bulkElevationRead(res *Response) error {
-
 	latDiff := (res.Request.LatitudeEnd - res.Request.LatitudeStart)
 	lngDiff := (res.Request.LongitudeEnd - res.Request.LongitudeStart)
 
@@ -38,6 +43,8 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 		}
 		return start + float64(idx)*delta
 	}
+
+	buf := make([]byte, 4)
 
 	for y := 0; y < res.ResolutionY; y++ {
 		lat := valueAt(y, res.ResolutionY, res.Request.UpIsNorth, res.Request.LatitudeStart, latDelta)
@@ -53,7 +60,8 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 				return err
 			}
 
-			if _, err := res.Writer.Write(unsafe.Slice((*byte)(unsafe.Pointer(&f)), 4)); err != nil {
+			binary.LittleEndian.PutUint32(buf, math.Float32bits(f))
+			if _, err := res.Writer.Write(buf); err != nil {
 				log.FLog(dataset_error, err)
 				return err
 			}
@@ -92,7 +100,7 @@ func (d *Dataset) elevationAtDisk(px, py int) (float32, error) {
 	var f float32
 	ptr := unsafe.Pointer(&f)
 
-	if err := d.ds.BasicRead(px, py, 1, 1, []int{1}, unsafe.Slice((*byte)(ptr), d.meta.TypeBytes)); err != nil {
+	if err := d.ds.BasicRead(px, py, 1, 1, elevationBand, unsafe.Slice((*byte)(ptr), d.meta.TypeBytes)); err != nil {
 		log.FLog(dataset_error, err)
 		return f, err
 	}
