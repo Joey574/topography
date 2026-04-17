@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
-	"unsafe"
 
 	gdal "github.com/seerai/godal"
 )
@@ -64,11 +63,6 @@ func (r *Request) ParseResolution(reader io.Reader) error {
 
 func (r *Response) Bytes() []byte {
 	return r.buffer.Bytes()
-}
-
-func (r *Response) Floats() []float32 {
-	b := r.Bytes()
-	return unsafe.Slice((*float32)(unsafe.Pointer(&b[0])), len(b)/4)
 }
 
 func (r *Response) WriteHeader() error {

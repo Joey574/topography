@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"os"
@@ -41,15 +42,18 @@ func Render(
 	}
 	ds.Close()
 
-	data := resp.Floats()
-	normalize(&data, -1.0, 1.0)
+	data := resp.Bytes()
+	fmt.Println(data[0])
+	normalize(data, resp.Type, -1.0, 1.0)
+	fmt.Println(data[0])
 
 	sphere := &Sphere{
 		Radius:    1.0,
 		Data:      data,
+		Type:      resp.Type,
 		Width:     resp.ResolutionX,
 		Height:    resp.ResolutionY,
-		MaxHeight: 0.01,
+		MaxHeight: 0.1,
 	}
 
 	material := pt.GlossyMaterial(pt.HexColor(0x33BCFF), 1.5, pt.Radians(20))
