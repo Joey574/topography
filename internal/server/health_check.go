@@ -29,15 +29,15 @@ func (s *Server) HealthCheck(d *dataset.Dataset) http.HandlerFunc {
 
 		var err error
 
-		for i := range locs {
-			px, py := d.ToPixel(locs[i].Latitude, locs[i].Longitude)
+		// for i := range locs {
+		// 	px, py := d.ToPixel(locs[i].Latitude, locs[i].Longitude)
 
-			locs[i].Elevation, err = d.ElevationAt(px, py)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
+		// 	locs[i].Elevation, err = d.ElevationAt(px, py)
+		// 	if err != nil {
+		// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 		return
+		// 	}
+		// }
 
 		bytes, err := json.Marshal(locs)
 		if err != nil {

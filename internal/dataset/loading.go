@@ -38,8 +38,6 @@ func (d *Dataset) loadIntoRAM(truncateData bool) error {
 		d.meta.Igt = gdal.InvGeoTransform(d.meta.Gt)
 		d.meta.RasterX = newRasterX
 		d.meta.RasterY = newRasterY
-		d.meta.Type = _FLOAT_32
-		d.meta.TypeBytes = d.meta.Type.Size() / 8
 		d.data = res.Bytes()
 		return nil
 	}

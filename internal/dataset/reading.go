@@ -1,14 +1,9 @@
 package dataset
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 	"topography/v2/internal/log"
-	"unsafe"
-
-	"github.com/x448/float16"
 )
 
 var (
@@ -44,7 +39,7 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 		return start + float64(idx)*delta
 	}
 
-	buf := make([]byte, 4)
+	buf := make([]byte, d.meta.TypeBytes)
 
 	for y := 0; y < res.ResolutionY; y++ {
 		lat := valueAt(y, res.ResolutionY, res.Request.UpIsNorth, res.Request.LatitudeStart, latDelta)
@@ -54,13 +49,13 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 
 			px, py := d.ToPixel(lat, lng)
 
-			f, err := d.ElevationAt(px, py)
+			err := d.ElevationAt(px, py, buf)
 			if err != nil {
 				log.FLog(dataset_error, err)
 				return err
 			}
 
-			binary.LittleEndian.PutUint32(buf, math.Float32bits(f))
+			//fmt.Println("[BULK]", *(*float32)(unsafe.Pointer(&buf[0])))
 			if _, err := res.Writer.Write(buf); err != nil {
 				log.FLog(dataset_error, err)
 				return err
@@ -71,43 +66,33 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 	return nil
 }
 
-func (d *Dataset) ElevationAt(px, py int) (float32, error) {
+func (d *Dataset) ElevationAt(px, py int, buf []byte) error {
 	if d.data == nil {
-		return d.elevationAtDisk(px, py)
+		return d.elevationAtDisk(px, py, buf)
 	}
 
-	return d.elevationAtRAM(px, py)
+	return d.elevationAtRAM(px, py, buf)
 }
 
-func (d *Dataset) elevationAtRAM(px, py int) (float32, error) {
-	var f float32
-
+func (d *Dataset) elevationAtRAM(px, py int, buf []byte) error {
 	idx := (py*d.meta.RasterX + px) * d.meta.TypeBytes
 	if idx > len(d.data) {
-		return f, fmt.Errorf("index %d out of bounds for slice of length %d", idx, len(d.data))
+		return fmt.Errorf("index %d out of bounds for slice of length %d", idx, len(d.data))
 	}
 
-	if d.meta.Type == _FLOAT_16 {
-		f = float16.Frombits(*(*uint16)(unsafe.Pointer(&d.data[idx]))).Float32()
-	} else {
-		f = *(*float32)(unsafe.Pointer(&d.data[idx]))
+	for i := range d.meta.TypeBytes {
+		buf[i] = d.data[idx+i]
 	}
 
-	return f, nil
+	//fmt.Println("[RAM]", *(*float32)(unsafe.Pointer(&buf[0])))
+	return nil
 }
 
-func (d *Dataset) elevationAtDisk(px, py int) (float32, error) {
-	var f float32
-	ptr := unsafe.Pointer(&f)
-
-	if err := d.ds.BasicRead(px, py, 1, 1, elevationBand, unsafe.Slice((*byte)(ptr), d.meta.TypeBytes)); err != nil {
+func (d *Dataset) elevationAtDisk(px, py int, buf []byte) error {
+	if err := d.ds.BasicRead(px, py, 1, 1, elevationBand, buf); err != nil {
 		log.FLog(dataset_error, err)
-		return f, err
+		return err
 	}
 
-	if d.meta.Type == _FLOAT_16 {
-		f = float16.Frombits(*(*uint16)(ptr)).Float32()
-	}
-
-	return f, nil
+	return nil
 }
