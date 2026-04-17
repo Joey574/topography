@@ -212,7 +212,6 @@ function createSphere(latResolution, lonResolution) {
   scene.add(sphere);
   settings.latResolution = latResolution;
   settings.lonResolution = lonResolution;
-  settings.resolution = lonResolution;
 
   let totalVertices = 0;
   sphere.children.forEach(mesh => {
@@ -421,11 +420,8 @@ async function fetchTopographyData() {
       await new Promise(resolve => setTimeout(resolve, 250));
       break fetch;
     }
-    
-    const requestData = {
-      resolution: settings.resolution,
-    };
 
+    const requestData = {resolution: settings.resolution};
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -439,12 +435,20 @@ async function fetchTopographyData() {
     const buffer = await response.arrayBuffer();
     const view = new DataView(buffer);
 
-    const vertexCount = view.getUint32(0, true);
-    const latPoints = view.getUint32(4, true);
-    const lonPoints = view.getUint32(8, true);
+    const dataType = view.getUint32(0, true);
+    const vertexCount = view.getUint32(4, true);
+    const latPoints = view.getUint32(8, true);
+    const lonPoints = view.getUint32(12, true);
 
-    const displacements = new Float32Array(buffer, 4, vertexCount);
-    
+    let displacements;
+    if (dataType == 6) {
+      // float32
+      displacements = new Float32Array(buffer, 16, vertexCount);
+    } else if (dataType == 15) {
+      // float16
+      displacements = new Float16Array(buffer, 16, vertexCount);
+    }
+
     backendData = {
       displacements: displacements,
       resolution: settings.resolution,

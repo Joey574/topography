@@ -32,7 +32,7 @@ type MetaData struct {
 	TypeBytes   int
 }
 
-func NewDataset(path string, loadIntoRam, isServer bool) (*Dataset, error) {
+func NewDataset(path string, loadIntoRam, truncateData bool) (*Dataset, error) {
 	d := &Dataset{}
 
 	// load in topography data
@@ -47,11 +47,11 @@ func NewDataset(path string, loadIntoRam, isServer bool) (*Dataset, error) {
 	d.meta = newMetaData(&d.ds)
 
 	if loadIntoRam {
-		err = d.loadIntoRAM(isServer)
+		err = d.loadIntoRAM(truncateData)
 		d.ds.Close()
 	}
 
-	log.FLog(initialize_log, loadIntoRam, isServer)
+	log.FLog(initialize_log, loadIntoRam, truncateData)
 	return d, nil
 }
 

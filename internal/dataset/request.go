@@ -2,9 +2,11 @@ package dataset
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"io"
-	"unsafe"
+
+	gdal "github.com/seerai/godal"
 )
 
 type Request struct {
@@ -18,12 +20,15 @@ type Request struct {
 }
 
 type Response struct {
-	Request     *Request
+	Request *Request
+	Type    gdal.DataType
+
 	Vertices    int
 	ResolutionX int
 	ResolutionY int
-	Writer      io.Writer
-	buffer      *bytes.Buffer
+
+	Writer io.Writer
+	buffer *bytes.Buffer
 }
 
 func NewResponse(req *Request, m *MetaData, w io.Writer) *Response {
@@ -31,26 +36,24 @@ func NewResponse(req *Request, m *MetaData, w io.Writer) *Response {
 	resY := int(float64(req.Resolution) * m.AspectRatio)
 	verts := resX * resY
 
-	var buf *bytes.Buffer
-
 	// a value for w was not passed, meaning
 	// this is backed by an actual slice
+	var buf *bytes.Buffer
 	if w == nil {
-		data := make([]float32, 0, verts)
-
-		ptr := unsafe.SliceData(data)
-		byteSlice := unsafe.Slice((*byte)(unsafe.Pointer(ptr)), cap(data)*4)
-		buf = bytes.NewBuffer(byteSlice[:0])
+		buf = bytes.NewBuffer(make([]byte, 0, verts*m.TypeBytes))
 		w = buf
 	}
 
 	return &Response{
-		Request:     req,
+		Request: req,
+		Type:    m.Type,
+
 		Vertices:    verts,
 		ResolutionX: resX,
 		ResolutionY: resY,
-		Writer:      w,
-		buffer:      buf,
+
+		Writer: w,
+		buffer: buf,
 	}
 }
 
@@ -62,21 +65,15 @@ func (r *Response) Bytes() []byte {
 	return r.buffer.Bytes()
 }
 
-func (r *Response) Floats() []float32 {
-	b := r.Bytes()
-	return unsafe.Slice((*float32)(unsafe.Pointer(&b[0])), len(b)/4)
-}
-
 func (r *Response) WriteHeader() error {
-	if _, err := r.Writer.Write(unsafe.Slice((*byte)(unsafe.Pointer(&r.Vertices)), 4)); err != nil {
-		return err
-	}
+	var header [16]byte
 
-	if _, err := r.Writer.Write(unsafe.Slice((*byte)(unsafe.Pointer(&r.ResolutionY)), 4)); err != nil {
-		return err
-	}
+	binary.LittleEndian.PutUint32(header[0:4], uint32(r.Type))
+	binary.LittleEndian.PutUint32(header[4:8], uint32(r.Vertices))
+	binary.LittleEndian.PutUint32(header[8:12], uint32(r.ResolutionY))
+	binary.LittleEndian.PutUint32(header[12:16], uint32(r.ResolutionX))
 
-	if _, err := r.Writer.Write(unsafe.Slice((*byte)(unsafe.Pointer(&r.ResolutionX)), 4)); err != nil {
+	if _, err := r.Writer.Write(header[:]); err != nil {
 		return err
 	}
 

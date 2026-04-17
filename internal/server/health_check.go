@@ -23,19 +23,21 @@ func (s *Server) HealthCheck(d *dataset.Dataset) http.HandlerFunc {
 		locs := []location{
 			{"Mount Everest", 27.9882, 86.9254, 0},
 			{"Challenger Deep", 11.3733, 142.5917, 0},
+			{"The Dead Sea", 31.559, 35.4732, 0},
+			{"Death Valley (Badwater Basin)", 36.2461, -116.8185, 0},
 		}
 
 		var err error
 
-		for i := range locs {
-			px, py := d.ToPixel(locs[i].Latitude, locs[i].Longitude)
+		// for i := range locs {
+		// 	px, py := d.ToPixel(locs[i].Latitude, locs[i].Longitude)
 
-			locs[i].Elevation, err = d.ElevationAt(px, py)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
+		// 	locs[i].Elevation, err = d.ElevationAt(px, py)
+		// 	if err != nil {
+		// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 		return
+		// 	}
+		// }
 
 		bytes, err := json.Marshal(locs)
 		if err != nil {

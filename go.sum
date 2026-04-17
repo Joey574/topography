@@ -1,5 +1,7 @@
 github.com/Joey574/pt v0.0.0-20260414020323-f553f5feaa05 h1:ZbqLoMOQ1374BDeFoLY1YGjNcfunUgcfN6icEn+DS0A=
 github.com/Joey574/pt v0.0.0-20260414020323-f553f5feaa05/go.mod h1:h+zaW8Swrc3FLALhCo3v9Eb5Q5bSi3JTDEs/Xlg2h/o=
+github.com/Joey574/pt v0.0.0-20260417024713-13a33018d399 h1:0q1Qqk4tEydFh2K0rui9tqgtQwNlG1wU8d8LCKMXwpY=
+github.com/Joey574/pt v0.0.0-20260417024713-13a33018d399/go.mod h1:h+zaW8Swrc3FLALhCo3v9Eb5Q5bSi3JTDEs/Xlg2h/o=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/jessevdk/go-flags v1.6.1 h1:Cvu5U8UGrLay1rZfv/zP7iLpSHGUZ/Ou68T0iX1bBK4=

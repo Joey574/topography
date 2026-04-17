@@ -2,13 +2,17 @@ package renderer
 
 import (
 	"math"
+	"unsafe"
 
 	"github.com/Joey574/pt/pt"
+	gdal "github.com/seerai/godal"
+	"github.com/x448/float16"
 )
 
 type Sphere struct {
 	Radius    float64
-	Data      []float32
+	Data      []byte
+	Type      gdal.DataType
 	Width     int
 	Height    int
 	MaxHeight float64
@@ -41,10 +45,21 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	fy := py - float64(y0)
 
 	// Sample the 4 corners from the 1D slice
-	h00 := float64(s.Data[y0*s.Width+x0])
-	h10 := float64(s.Data[y0*s.Width+x1])
-	h01 := float64(s.Data[y1*s.Width+x0])
-	h11 := float64(s.Data[y1*s.Width+x1])
+	var h00, h10, h01, h11 float64
+	switch s.Type {
+	case gdal.Float32:
+		bpp := 4
+		h00 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp])))
+		h10 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp])))
+		h01 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp])))
+		h11 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp])))
+	case 15:
+		bpp := 2
+		h00 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp]))).Float32())
+		h10 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp]))).Float32())
+		h01 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp]))).Float32())
+		h11 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp]))).Float32())
+	}
 
 	// Interpolate X
 	h0 := h00*(1-fx) + h10*fx
