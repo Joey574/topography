@@ -3,6 +3,7 @@ package renderer
 import (
 	"log"
 	"math"
+	"topography/v2/internal/log"
 	"unsafe"
 
 	"github.com/Joey574/pt/pt"
@@ -48,20 +49,20 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	// Sample the 4 corners from the 1D slice
 	var h00, h10, h01, h11 float64
 	switch s.Type {
-	case gdal.Float32:
+	case _FLOAT_32:
 		bpp := 4
 		h00 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp])))
 		h10 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp])))
 		h01 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp])))
 		h11 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp])))
-	case 15:
+	case _FLOAT_16:
 		bpp := 2
 		h00 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp]))).Float32())
 		h10 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp]))).Float32())
 		h01 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp]))).Float32())
 		h11 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp]))).Float32())
 	default:
-		log.Fatalf("unrecognized type : %d\n", s.Type)
+		log.FLog(render_error, "unrecognized data type!")
 	}
 
 	// Interpolate X
@@ -78,7 +79,7 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 // BoundingBox tells the renderer where the object exists in 3D space.
 // If the ray entirely misses this box, it won't bother evaluating the SDF.
 func (s *Sphere) BoundingBox() pt.Box {
-	maxExtent := s.Radius + (s.Radius * s.MaxHeight)
+	maxExtent := s.Radius + s.MaxHeight + 1e-3
 	return pt.Box{
 		Min: pt.Vector{X: -maxExtent, Y: -maxExtent, Z: -maxExtent},
 		Max: pt.Vector{X: maxExtent, Y: maxExtent, Z: maxExtent},

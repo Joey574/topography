@@ -1,10 +1,10 @@
 package renderer
 
 import (
-	"log"
 	"math"
 	"os"
 	"topography/v2/internal/dataset"
+	"topography/v2/internal/log"
 
 	"github.com/Joey574/pt/pt"
 )
@@ -22,9 +22,11 @@ func Render(
 ) {
 	err := os.MkdirAll(dir, 0744)
 	if err != nil {
-		log.Fatalln(err)
+		log.FLog(render_error, err)
+		return
 	}
 
+	log.FLog(initialize_log)
 	scene := pt.Scene{}
 
 	resp, err := ds.GenerateResponse(&dataset.Request{
@@ -37,7 +39,8 @@ func Render(
 		LongitudeEnd:   180.0,
 	}, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		log.FLog(render_error, err)
+		return
 	}
 	ds.Close()
 
@@ -72,7 +75,7 @@ func Render(
 	)
 
 	light := pt.NewSphere(
-		pt.V(-x*5, y*5, z*5),
+		pt.V(x*5, y*5, z*5),
 		1,
 		pt.LightMaterial(pt.White, 25),
 	)
@@ -84,7 +87,9 @@ func Render(
 	renderer.AdaptiveSamples = 128
 	renderer.SamplesPerPixel = 4
 	renderer.FireflySamples = 4
-
+	renderer.Verbose = false
 	renderer.NumCPU = cores
+
+	log.FLog(start_log)
 	renderer.IterativeRender(dir+"out_%03d.png", iterations)
 }

@@ -9,7 +9,7 @@ import (
 
 const (
 	MIN_ONLINE_RESOLUTION = 128
-	MAX_ONLINE_RESOLUTION = 2048
+	MAX_ONLINE_RESOLUTION = 4096
 
 	_FLOAT_32 = gdal.Float32
 	_FLOAT_16 = gdal.DataType(15) // godal does not define a float16 type, .RasterDataType tested to return the value 15
@@ -32,7 +32,7 @@ type MetaData struct {
 	TypeBytes   int
 }
 
-func NewDataset(path string, loadIntoRam, truncateData bool) (*Dataset, error) {
+func NewDataset(path string, loadIntoRam, downsample bool) (*Dataset, error) {
 	d := &Dataset{}
 
 	// load in topography data
@@ -47,11 +47,13 @@ func NewDataset(path string, loadIntoRam, truncateData bool) (*Dataset, error) {
 	d.meta = newMetaData(&d.ds)
 
 	if loadIntoRam {
-		err = d.loadIntoRAM(truncateData)
+		err = d.loadIntoRAM(downsample)
 		d.ds.Close()
+		gdal.CleanupOGR()
+		gdal.CleanupSR()
 	}
 
-	log.FLog(initialize_log, loadIntoRam, truncateData)
+	log.FLog(initialize_log, loadIntoRam, downsample)
 	return d, nil
 }
 
@@ -65,6 +67,10 @@ func newMetaData(ds *gdal.Dataset) MetaData {
 		Type:        ds.RasterBand(1).RasterDataType(),
 		TypeBytes:   ds.RasterBand(1).RasterDataType().Size() / 8,
 	}
+}
+
+func (d *Dataset) Type() gdal.DataType {
+	return d.meta.Type
 }
 
 func (d *Dataset) Close() {

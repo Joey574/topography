@@ -20,7 +20,7 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 			LatitudeEnd:    90.0,
 			LongitudeStart: -180.0,
 			LongitudeEnd:   180.0,
-			UpIsNorth:      true,
+			UpIsNorth:      false,
 			LeftIsWest:     false,
 		}
 
