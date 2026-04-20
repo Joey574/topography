@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"os"
@@ -43,9 +42,7 @@ func Render(
 	ds.Close()
 
 	data := resp.Bytes()
-	fmt.Println(data[0])
 	normalize(data, resp.Type, -1.0, 1.0)
-	fmt.Println(data[0])
 
 	sphere := &Sphere{
 		Radius:    1.0,

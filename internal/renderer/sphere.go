@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"log"
 	"math"
 	"unsafe"
 
@@ -59,6 +60,8 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 		h10 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp]))).Float32())
 		h01 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp]))).Float32())
 		h11 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp]))).Float32())
+	default:
+		log.Fatalf("unrecognized type : %d\n", s.Type)
 	}
 
 	// Interpolate X
@@ -75,7 +78,7 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 // BoundingBox tells the renderer where the object exists in 3D space.
 // If the ray entirely misses this box, it won't bother evaluating the SDF.
 func (s *Sphere) BoundingBox() pt.Box {
-	maxExtent := s.Radius + 11000
+	maxExtent := s.Radius + (s.Radius * s.MaxHeight)
 	return pt.Box{
 		Min: pt.Vector{X: -maxExtent, Y: -maxExtent, Z: -maxExtent},
 		Max: pt.Vector{X: maxExtent, Y: maxExtent, Z: maxExtent},

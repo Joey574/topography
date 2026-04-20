@@ -1,7 +1,7 @@
 package renderer
 
 import (
-	"fmt"
+	"log"
 	"unsafe"
 
 	gdal "github.com/seerai/godal"
@@ -11,11 +11,11 @@ import (
 func normalize(xs []byte, t gdal.DataType, a, b float32) {
 	switch t {
 	case gdal.Float32:
-		fmt.Println("normalizing float32")
 		normalizef32(unsafe.Slice((*float32)(unsafe.Pointer(&xs[0])), len(xs)/4), a, b)
 	case 15:
-		fmt.Println("normalizing float16")
 		normalizef16(unsafe.Slice((*float16.Float16)(unsafe.Pointer(&xs[0])), len(xs)/2), a, b)
+	default:
+		log.Fatalf("unrecognized type : %d\n", t)
 	}
 }
 
