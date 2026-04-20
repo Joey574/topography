@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"log"
 	"math"
 	"topography/v2/internal/log"
 	"unsafe"
