@@ -25,6 +25,12 @@ func (d *Dataset) GenerateResponse(req *Request, writeHeader bool, w io.Writer) 
 }
 
 func (d *Dataset) bulkElevationRead(res *Response) error {
+	// handle special case of full resolution, as we can assume this will be the most likely case
+	if res.ResolutionX == d.meta.RasterX && res.ResolutionY == d.meta.RasterY {
+		// TODO : for now we'll just handle it like we normally do
+		//return d.streamFullDataset(res)
+	}
+
 	latDiff := (res.Request.LatitudeEnd - res.Request.LatitudeStart)
 	lngDiff := (res.Request.LongitudeEnd - res.Request.LongitudeStart)
 
@@ -61,6 +67,50 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 	}
 
 	return nil
+}
+
+func (d *Dataset) streamFullDataset(res *Response) error {
+	fmt.Println("streaming full dataset")
+
+	if d.data != nil {
+		// handle the case we are streaming from ram
+
+		if res.Request.UpIsNorth && !res.Request.LeftIsWest {
+			// handle case where request matches stored direction
+
+			_, err := res.Writer.Write(d.data[:])
+			if err != nil {
+				log.FLog(dataset_error, err)
+				return err
+			}
+
+			return nil
+		} else if !res.Request.UpIsNorth && !res.Request.LeftIsWest {
+			// handle case with y mismatch
+			stride := d.meta.RasterX * d.meta.TypeBytes
+			fmt.Printf("rasterX='%d', typeSize='%d', stride='%d'\n", d.meta.RasterX, d.meta.TypeBytes, stride)
+
+			for y := d.meta.RasterY - 1; y >= 0; y-- {
+				start := y * d.meta.RasterX
+
+				if _, err := res.Writer.Write(d.data[start : start+stride]); err != nil {
+					log.FLog(dataset_error, err)
+					return err
+				}
+			}
+
+			return nil
+		} else if res.Request.UpIsNorth && res.Request.LeftIsWest {
+		}
+
+		// handle case with x mismatch
+
+		// handle case with x and y mismatch
+		return nil
+	} else {
+		// handle the case we are streaming from disk
+		return nil
+	}
 }
 
 // Reads the data at the pixel coords px and py into buf

@@ -7,41 +7,43 @@ gdal.UseExceptions()
 gdal.SetConfigOption('GDAL_NUM_THREADS', 'ALL_CPUS')
 gdal.SetConfigOption('GDAL_CACHEMAX', '512')
 
-def create_dataset(original_path, converted_path, use_f16):
+def create_dataset(original_path, converted_path, use_f16, downsample):
     ds = gdal.Open(original_path)
+    if not ds:
+        raise ValueError("dataset not found")
 
-    options = gdal.TranslateOptions()
+    kwargs = {
+        "format":"GTiff"
+    }
+
     if use_f16:
-        options = gdal.TranslateOptions(
-            format="GTiff",
-            outputType=gdal.GDT_Float16,
-            creationOptions=[
-                "COMPRESS=ZSTD",
-                "ZSTD_LEVEL=9",
-                "NUM_THREADS=ALL_CPUS",
-                "DISCARD_LSB=2",
-                "TILED=YES",
-                "BLOCKXSIZE=2048",
-                "BLOCKYSIZE=2048",
-            ]
-        )
+        kwargs["outputType"] = gdal.GDT_Float16
+        kwargs["creationOptions"] = [
+            "COMPRESS=ZSTD", "ZSTD_LEVEL=9", "NUM_THREADS=ALL_CPUS",
+            "DISCARD_LSB=2", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+        ]
     else:
-        options = gdal.TranslateOptions(
-            format="GTiff",
-            outputType=gdal.GDT_Float32,
-            creationOptions=[
-                "COMPRESS=LERC_ZSTD",
-                "MAX_Z_ERROR=1.0",
-                "DISCARD_LSB=2",
-                "NUM_THREADS=ALL_CPUS",            
-                "TILED=YES",
-                "BLOCKXSIZE=2048",
-                "BLOCKYSIZE=2048",
-            ]
-        )
+        kwargs["outputType"] = gdal.GDT_Float32
+        kwargs["creationOptions"] = [
+            "COMPRESS=LERC_ZSTD", "MAX_Z_ERROR=1.0", "DISCARD_LSB=2",
+            "NUM_THREADS=ALL_CPUS", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+        ]
+
+    if downsample:
+        orig_width = ds.RasterXSize
+        orig_height = ds.RasterYSize
+        target_height = int(round(orig_height * (downsample / orig_width)))
+
+        kwargs["width"] = downsample
+        kwargs["height"] = target_height
+
+        kwargs["resampleAlg"] = gdal.GRA_Average
+
 
     print("Creating dataset...")
+    options = gdal.TranslateOptions(**  kwargs)
     gdal.Translate(converted_path, ds, options=options)
+    ds = None
 
     print("--- Dataset Generated ---")
     print(f"New Size: {os.path.getsize(converted_path) / (1024**3)} gb")
@@ -120,6 +122,7 @@ parser.add_argument("-o", "--output", type=str)
 parser.add_argument("--f16", action="store_true")
 parser.add_argument("--f32", action="store_true")
 parser.add_argument("--audit", action="store_true")
+parser.add_argument("-d", "--downsample", type=int)
 args = parser.parse_args()
 
 if args.audit:
@@ -141,4 +144,4 @@ if (args.f16 == False and args.f32 == False) or ():
     print("MUST pass --f16 OR --f32 (f16 will result in a smaller size, f32 will result in higher accuracy)")
     exit(1)
 
-create_dataset(args.file[0], args.output, args.f16)
+create_dataset(args.file[0], args.output, args.f16, args.downsample)

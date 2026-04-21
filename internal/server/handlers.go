@@ -6,7 +6,7 @@ import (
 	"topography/v2/internal/log"
 )
 
-func (s *Server) TemplateHandler(f embed.FS, path string) http.HandlerFunc {
+func (s *Server) templateHandler(path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := s.tmpl.ExecuteTemplate(w, path, nil); err != nil {
 			log.FLog(server_error, err)
@@ -14,12 +14,13 @@ func (s *Server) TemplateHandler(f embed.FS, path string) http.HandlerFunc {
 	}
 }
 
-func (s *Server) DefaultHandler(f embed.FS, file string) http.HandlerFunc {
+func (s *Server) defaultHandler(f embed.FS, file string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		http.ServeFile(w, r, file)
+		http.ServeFileFS(w, r, f, file)
 	})
 }

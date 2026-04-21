@@ -18,16 +18,16 @@ type Server struct {
 
 func NewServer(fs embed.FS, d *dataset.Dataset) *Server {
 	s := &Server{}
-	s.tmpl, _ = template.ParseFS(fs, "min/html/*.html")
+	s.tmpl = template.Must(template.ParseFS(fs, "min/html/*.html"))
 	s.limiter = rate.NewLimiter(15, 30)
-	s.SetHandlers(fs, d)
+	s.setHandlers(fs, d)
 
 	log.FLog(initialize_log)
 	return s
 }
 
 // Apply CSRF protections
-func (s *Server) WrapCSRF(next http.Handler) http.Handler {
+func (s *Server) wrapCSRF(next http.Handler) http.Handler {
 	csrf := http.NewCrossOriginProtection()
 	csrf.AddTrustedOrigin("http://localhost:8080")
 	csrf.AddTrustedOrigin("https://topoview.org")
@@ -35,7 +35,7 @@ func (s *Server) WrapCSRF(next http.Handler) http.Handler {
 }
 
 // Add some security headers
-func (s *Server) HeaderHandler(next http.Handler) http.Handler {
+func (s *Server) headerHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Strict-Transport-Security", "max-age=63072000;")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -45,14 +45,14 @@ func (s *Server) HeaderHandler(next http.Handler) http.Handler {
 }
 
 // Log incoming requests
-func (s *Server) LoggingHandler(next http.Handler) http.Handler {
+func (s *Server) loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.FLog(request_log, r.RemoteAddr, r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (s *Server) RateLimitHandler(next http.Handler) http.Handler {
+func (s *Server) rateLimitHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.limiter.Allow() {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
@@ -63,34 +63,34 @@ func (s *Server) RateLimitHandler(next http.Handler) http.Handler {
 }
 
 // Returns a http.Handler packaged with all the handlers and security protections
-func (s *Server) SetHandlers(fs embed.FS, d *dataset.Dataset) {
+func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux := http.NewServeMux()
 
 	// main functionality
-	mux.Handle("GET /{$}", s.TemplateHandler(fs, "index.html"))
+	mux.Handle("GET /{$}", s.templateHandler("index.html"))
 	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("POST /topography", s.TopographyHandler(d))
 
 	// utility
-	mux.Handle("GET /static/js/script.js", s.DefaultHandler(fs, "min/js/script.js"))
-	mux.Handle("GET /static/css/style.css", s.DefaultHandler(fs, "min/css/style.css"))
-	mux.Handle("GET /robots.txt", s.DefaultHandler(fs, "min/misc/robots.txt"))
-	mux.Handle("GET /humans.txt", s.DefaultHandler(fs, "min/misc/humans.txt"))
+	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js"))
+	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css"))
+	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt"))
+	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt"))
 	//mux.Handle("GET /sitemap.xml", nil)
-	mux.Handle("GET /favicon.ico", s.DefaultHandler(fs, "min/misc/favicon.svg"))
-	mux.Handle("GET /about", s.TemplateHandler(fs, "about.html"))
-	mux.Handle("GET /contact", s.TemplateHandler(fs, "contact.html"))
+	mux.Handle("GET /favicon.ico", s.defaultHandler(fs, "min/misc/favicon.svg"))
+	mux.Handle("GET /about", s.templateHandler("about.html"))
+	mux.Handle("GET /contact", s.templateHandler("contact.html"))
 
 	// legal
-	mux.Handle("GET /tos", s.TemplateHandler(fs, "tos.html"))
-	mux.Handle("GET /privacy", s.TemplateHandler(fs, "privacy.html"))
-	mux.Handle("GET /cookies", s.TemplateHandler(fs, "cookies.html"))
-	mux.Handle("GET /accessibility", s.TemplateHandler(fs, "accessibility.html"))
+	mux.Handle("GET /tos", s.templateHandler("tos.html"))
+	mux.Handle("GET /privacy", s.templateHandler("privacy.html"))
+	mux.Handle("GET /cookies", s.templateHandler("cookies.html"))
+	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html"))
 
 	// wrappers
-	handler := s.HeaderHandler(mux)
-	handler = s.WrapCSRF(handler)
-	handler = s.RateLimitHandler(handler)
-	handler = s.LoggingHandler(handler)
+	handler := s.headerHandler(mux)
+	handler = s.wrapCSRF(handler)
+	handler = s.rateLimitHandler(handler)
+	handler = s.loggingHandler(handler)
 	s.Handler = handler
 }

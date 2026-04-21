@@ -53,7 +53,7 @@ func Render(
 		Type:      resp.Type,
 		Width:     resp.ResolutionX,
 		Height:    resp.ResolutionY,
-		MaxHeight: 0.1,
+		MaxHeight: 0.075,
 	}
 
 	material := pt.GlossyMaterial(pt.HexColor(0x33BCFF), 1.5, pt.Radians(20))
@@ -75,9 +75,9 @@ func Render(
 	)
 
 	light := pt.NewSphere(
-		pt.V(x*5, y*5, z*5),
+		pt.V(-x*20, y*20, -z*20),
 		1,
-		pt.LightMaterial(pt.White, 25),
+		pt.LightMaterial(pt.White, 2000),
 	)
 	scene.Add(light)
 
