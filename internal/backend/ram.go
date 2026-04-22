@@ -75,9 +75,6 @@ func (ram *RAMBackend) LoadDynamic(path string) error {
 	case FLOAT_32:
 		ram.data = make([]byte, size*4)
 	}
-	if err != nil {
-		return err
-	}
 
 	return ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
 }
