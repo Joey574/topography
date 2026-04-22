@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-IMAGE_NAME="minimal-topography"
+IMAGE_NAME="topography"
 
 echo "Building the Docker image..."
 docker build -t $IMAGE_NAME .

@@ -1,26 +1,21 @@
-FROM golang:1.26-alpine AS builder
+FROM ghcr.io/osgeo/gdal:alpine-small-3.12.2 AS builder
 
-# pull in gdal
-RUN sed -i -e 's/v[0-9]\.[0-9]\+/edge/g' /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache gcc musl-dev pkgconfig gdal-dev
-
-
+RUN apk add --no-cache go gcc musl-dev pkgconfig coreutils
 WORKDIR /app
+
 COPY go.mod go.sum ./
+ENV GOTOOLCHAIN=auto
 RUN go mod download
 
-COPY . .
-RUN sh ./scripts/build.sh
+COPY min min
+COPY scripts scripts
+COPY internal internal
+COPY main.go .
 
-FROM alpine:edge
-RUN apk update && \
-    apk add --no-cache gdal && \
-    rm -rf /var/cache/apk/*
+RUN ./scripts/build.sh
 
+FROM ghcr.io/osgeo/gdal:alpine-small-3.12.2
 WORKDIR /app
 
 COPY --from=builder /app/bin/topography /usr/local/bin/topography
-
-# Execute the binary
 ENTRYPOINT ["topography", "--server"]
