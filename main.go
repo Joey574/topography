@@ -36,6 +36,23 @@ type Args struct {
 }
 
 func main() {
+	// tmp := backend.NewRAMBackend()
+	// f, err := fs.Open("min/misc/srtm15plus_f16_4096.tif")
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	// err = tmp.LoadStatic(f.(io.ReadSeeker))
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	// os.Exit(0)
+
+	run()
+}
+
+func run() {
 	var args Args
 	_, err := flags.Parse(&args)
 	if err != nil {

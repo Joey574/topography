@@ -5,9 +5,8 @@ import argparse
 
 gdal.UseExceptions()
 gdal.SetConfigOption('GDAL_NUM_THREADS', 'ALL_CPUS')
-gdal.SetConfigOption('GDAL_CACHEMAX', '512')
 
-def create_dataset(original_path, converted_path, use_f16, downsample):
+def create_dataset(original_path, converted_path, use_f16, downsample, dont_compress):
     ds = gdal.Open(original_path)
     if not ds:
         raise ValueError("dataset not found")
@@ -18,16 +17,20 @@ def create_dataset(original_path, converted_path, use_f16, downsample):
 
     if use_f16:
         kwargs["outputType"] = gdal.GDT_Float16
-        kwargs["creationOptions"] = [
-            "COMPRESS=ZSTD", "ZSTD_LEVEL=9", "NUM_THREADS=ALL_CPUS",
-            "DISCARD_LSB=2", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
-        ]
+
+        if not dont_compress:
+            kwargs["creationOptions"] = [
+                "COMPRESS=ZSTD", "ZSTD_LEVEL=9", "NUM_THREADS=ALL_CPUS",
+                "DISCARD_LSB=2", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+            ]
     else:
         kwargs["outputType"] = gdal.GDT_Float32
-        kwargs["creationOptions"] = [
-            "COMPRESS=LERC_ZSTD", "MAX_Z_ERROR=1.0", "DISCARD_LSB=2",
-            "NUM_THREADS=ALL_CPUS", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
-        ]
+
+        if not dont_compress:
+            kwargs["creationOptions"] = [
+                "COMPRESS=LERC_ZSTD", "MAX_Z_ERROR=1.0", "DISCARD_LSB=2",
+                "NUM_THREADS=ALL_CPUS", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+            ]
 
     if downsample:
         orig_width = ds.RasterXSize
@@ -123,6 +126,7 @@ parser.add_argument("--f16", action="store_true")
 parser.add_argument("--f32", action="store_true")
 parser.add_argument("--audit", action="store_true")
 parser.add_argument("-d", "--downsample", type=int)
+parser.add_argument("--no-compression", action="store_true")
 args = parser.parse_args()
 
 if args.audit:
@@ -144,4 +148,4 @@ if (args.f16 == False and args.f32 == False) or ():
     print("MUST pass --f16 OR --f32 (f16 will result in a smaller size, f32 will result in higher accuracy)")
     exit(1)
 
-create_dataset(args.file[0], args.output, args.f16, args.downsample)
+create_dataset(args.file[0], args.output, args.f16, args.downsample, args.no_compression)

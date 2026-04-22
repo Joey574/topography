@@ -3,6 +3,7 @@ package dataset
 import (
 	"fmt"
 	"io"
+	"time"
 	"topography/v2/internal/log"
 )
 
@@ -12,6 +13,9 @@ var (
 
 func (d *Dataset) GenerateResponse(req *Request, writeHeader bool, w io.Writer) (*Response, error) {
 	log.FLog(request_log, req.Resolution, req.LatitudeStart, req.LatitudeEnd, req.LongitudeStart, req.LongitudeEnd)
+	defer func(start time.Time) {
+		log.FLog(served_log, time.Since(start))
+	}(time.Now())
 
 	res := NewResponse(req, &d.meta, w)
 	if writeHeader {
@@ -30,6 +34,36 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 		// TODO : for now we'll just handle it like we normally do
 		//return d.streamFullDataset(res)
 	}
+
+	// px_start, py_start := d.ToPixel(res.Request.LatitudeStart, res.Request.LongitudeStart)
+	// px_end, py_end := d.ToPixel(res.Request.LatitudeEnd, res.Request.LongitudeEnd)
+	// px_delta := float64(px_end-px_start) / float64(res.ResolutionX)
+	// py_delta := float64(py_end-py_start) / float64(res.ResolutionY)
+
+	// buf := make([]byte, d.meta.TypeBytes)
+	// for y := 0; y < res.ResolutionY; y++ {
+	// 	py := py_start + int(py_delta*float64(y))
+
+	// 	for x := 0; x < res.ResolutionX; x++ {
+	// 		px := px_start + int(px_delta*float64(x))
+
+	// 		// err := d.ElevationAt(px, py, buf)
+	// 		// if err != nil {
+	// 		// 	log.FLog(dataset_error, err)
+	// 		// 	return err
+	// 		// }
+
+	// 		idx := (py*d.meta.RasterX + px) * d.meta.TypeBytes
+	// 		copy(buf, d.data[idx:idx+d.meta.TypeBytes])
+
+	// 		if _, err := res.Writer.Write(buf); err != nil {
+	// 			log.FLog(dataset_error, err)
+	// 			return err
+	// 		}
+	// 	}
+	// }
+
+	// return nil
 
 	latDiff := (res.Request.LatitudeEnd - res.Request.LatitudeStart)
 	lngDiff := (res.Request.LongitudeEnd - res.Request.LongitudeStart)
@@ -70,8 +104,6 @@ func (d *Dataset) bulkElevationRead(res *Response) error {
 }
 
 func (d *Dataset) streamFullDataset(res *Response) error {
-	fmt.Println("streaming full dataset")
-
 	if d.data != nil {
 		// handle the case we are streaming from ram
 
