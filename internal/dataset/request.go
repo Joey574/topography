@@ -5,8 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
-
-	gdal "github.com/seerai/godal"
+	"topography/v2/internal/backend"
 )
 
 type Request struct {
@@ -21,7 +20,7 @@ type Request struct {
 
 type Response struct {
 	Request *Request
-	Type    gdal.DataType
+	Type    backend.DataType
 
 	Vertices    int
 	ResolutionX int
@@ -31,22 +30,22 @@ type Response struct {
 	buffer *bytes.Buffer
 }
 
-func NewResponse(req *Request, m *MetaData, w io.Writer) *Response {
+func NewResponse(req *Request, aspectRatio float64, dataType backend.DataType, w io.Writer) *Response {
 	resX := req.Resolution
-	resY := int(float64(req.Resolution) / m.AspectRatio)
+	resY := int(float64(req.Resolution) / aspectRatio)
 	verts := resX * resY
 
 	// a value for w was not passed, meaning
 	// this is backed by an actual slice
 	var buf *bytes.Buffer
 	if w == nil {
-		buf = bytes.NewBuffer(make([]byte, 0, verts*m.TypeBytes))
+		buf = bytes.NewBuffer(make([]byte, 0, verts*int(dataType.Bytes())))
 		w = buf
 	}
 
 	return &Response{
 		Request: req,
-		Type:    m.Type,
+		Type:    dataType,
 
 		Vertices:    verts,
 		ResolutionX: resX,

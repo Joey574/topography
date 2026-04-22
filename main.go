@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	logger "topography/v2/internal/log"
 	"topography/v2/internal/renderer"
@@ -36,19 +37,6 @@ type Args struct {
 }
 
 func main() {
-	// tmp := backend.NewRAMBackend()
-	// f, err := fs.Open("min/misc/srtm15plus_f16_4096.tif")
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-
-	// err = tmp.LoadStatic(f.(io.ReadSeeker))
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-
-	// os.Exit(0)
-
 	run()
 }
 
@@ -64,7 +52,7 @@ func run() {
 	}
 
 	if (args.Render && args.Server) || (!args.Render && !args.Server) {
-		log.Fatalln("MUST pick server OR render")
+		log.Fatalln("MUST pick --server OR --render")
 	}
 
 	if args.Log != "" {
@@ -76,10 +64,13 @@ func run() {
 		logger.SetLogFile(f)
 	}
 
-	d, err := dataset.NewDataset(args.File, !args.Disk, args.Server)
+	backend := backend.NewRAMBackend()
+	f, err := fs.Open("min/misc/srtm15plus_f16_4096.tif")
 	if err != nil {
 		log.Fatalln(err)
 	}
+	backend.LoadStatic(f)
+	d := dataset.NewDataset(backend)
 
 	if args.Server {
 		h := server.NewServer(fs, d)

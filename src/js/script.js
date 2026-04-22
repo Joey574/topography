@@ -441,12 +441,12 @@ async function fetchTopographyData() {
     const lonPoints = view.getUint32(12, true);
 
     let displacements;
-    if (dataType == 6) {
-      // float32
-      displacements = new Float32Array(buffer, 16, vertexCount);
-    } else if (dataType == 15) {
+    if (dataType == 0) {
       // float16
       displacements = new Float16Array(buffer, 16, vertexCount);
+    } else if (dataType == 2) {
+      // float32
+      displacements = new Float32Array(buffer, 16, vertexCount);
     }
 
     backendData = {

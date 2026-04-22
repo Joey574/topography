@@ -2,18 +2,18 @@ package renderer
 
 import (
 	"math"
+	"topography/v2/internal/backend"
 	"topography/v2/internal/log"
 	"unsafe"
 
 	"github.com/Joey574/pt/pt"
-	gdal "github.com/seerai/godal"
 	"github.com/x448/float16"
 )
 
 type Sphere struct {
 	Radius    float64
 	Data      []byte
-	Type      gdal.DataType
+	Type      backend.DataType
 	Width     int
 	Height    int
 	MaxHeight float64
@@ -48,13 +48,13 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	// Sample the 4 corners from the 1D slice
 	var h00, h10, h01, h11 float64
 	switch s.Type {
-	case _FLOAT_32:
+	case backend.FLOAT_32:
 		bpp := 4
 		h00 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp])))
 		h10 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp])))
 		h01 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp])))
 		h11 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp])))
-	case _FLOAT_16:
+	case backend.FLOAT_16:
 		bpp := 2
 		h00 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp]))).Float32())
 		h10 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp]))).Float32())

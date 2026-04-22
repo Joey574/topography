@@ -2,69 +2,143 @@ package backend
 
 import (
 	"io"
+	"os"
+	"path/filepath"
+
+	gdal "github.com/seerai/godal"
 )
 
 type RAMBackend struct {
-	rasterX     int
-	rasterY     int
-	aspectRatio float64
-
-	dataType DataType
-	origin   Origin
-
-	typeBytes int
-	bytes     int
-
-	data []byte
+	metaData Metadata
+	data     []byte
 }
 
 func NewRAMBackend() *RAMBackend {
 	return &RAMBackend{}
 }
 
-func (ram *RAMBackend) RasterX() int {
-	return ram.rasterX
+func (ram *RAMBackend) Name() string {
+	return "ram"
 }
 
-func (ram *RAMBackend) RasterY() int {
-	return ram.rasterY
+func (ram *RAMBackend) Metadata() Metadata {
+	return ram.metaData
+}
+
+func (ram *RAMBackend) RasterX() uint {
+	return ram.metaData.RasterX
+}
+
+func (ram *RAMBackend) RasterY() uint {
+	return ram.metaData.RasterY
 }
 
 func (ram *RAMBackend) AspectRatio() float64 {
-	return ram.aspectRatio
+	return ram.metaData.AspectRatio
 }
 
 func (ram *RAMBackend) DataType() DataType {
-	return ram.DataType()
+	return ram.metaData.DataType
 }
 
 func (ram *RAMBackend) Origin() Origin {
-	return ram.origin
+	return ram.metaData.Origin
 }
 
-func (ram *RAMBackend) TypeBytes() int {
-	return ram.typeBytes
+func (ram *RAMBackend) GeoTransform() [6]float64 {
+	return ram.metaData.GeoTransform
 }
 
 func (ram *RAMBackend) Data() []byte {
 	return ram.data
 }
 
-func (ram *RAMBackend) Bytes() int {
-	return len(ram.data)
-}
-
 func (ram *RAMBackend) LoadDynamic(path string) error {
-	// TODO : current libraries either are not for geotiff or lack support for float16
-	return nil
+	ds, err := gdal.Open(path, gdal.ReadOnly)
+	if err != nil {
+		return err
+	}
+	defer ds.Close()
+
+	ram.metaData, err = parseMetaData(&ds)
+	if err != nil {
+		return err
+	}
+
+	rx := ram.metaData.RasterX
+	ry := ram.metaData.RasterY
+	size := rx * ry
+
+	switch ram.metaData.DataType {
+	case FLOAT_16:
+		ram.data = make([]byte, size*2)
+	case FLOAT_32:
+		ram.data = make([]byte, size*4)
+	}
+	if err != nil {
+		return err
+	}
+
+	return ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
 }
 
 func (ram *RAMBackend) LoadStatic(r io.Reader) error {
-	// TODO : current libraries either are not for geotiff or lack support for float16
+	f, err := os.CreateTemp("", "*.tif")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, r)
+	if err != nil {
+		return err
+	}
+
+	path, err := filepath.Abs(f.Name())
+	if err != nil {
+		return err
+	}
+
+	err = ram.LoadDynamic(path)
+	if err != nil {
+		return err
+	}
+
+	os.Remove(path)
 	return nil
 }
 
 func (ram *RAMBackend) Downsample(samples uint) error {
+	if ram.metaData.RasterX == samples {
+		return nil
+	}
+
+	rx := ram.metaData.RasterX
+	ry := ram.metaData.RasterY
+	ar := ram.metaData.AspectRatio
+
+	newRasterX := uint(samples)
+	newRasterY := uint(float64(samples) / ar)
+
+	incx := rx / newRasterX
+	incy := ry / newRasterY
+
+	idx := 0
+	for y := uint(0); y < ry; y += incy {
+		for x := uint(0); x < rx; x += incx {
+			// TODO : implement averaging among points
+			ram.data[idx] = ram.data[y*rx+x]
+			idx++
+		}
+	}
+
+	ram.data = ram.data[:idx]
+	ram.metaData.RasterX = newRasterX
+	ram.metaData.RasterY = newRasterY
+	return nil
+}
+
+func (ram *RAMBackend) Transpose(origin Origin) error {
 	// TODO
 	return nil
 }
@@ -73,16 +147,52 @@ func (ram *RAMBackend) Write(w io.Writer, origin Origin, samples uint) error {
 	// handle special case of exact resolution match
 	// special case is included as this is assumed
 	// to be the most common case
-	if samples == uint(ram.rasterX) {
+	if ram.metaData.RasterX == samples {
 		return ram.writeAll(w, origin)
+	}
+
+	rx := ram.metaData.RasterX
+	irx := int(rx)
+	ry := ram.metaData.RasterY
+	ar := ram.metaData.AspectRatio
+	bpp := int(ram.metaData.DataType.Bytes())
+
+	sx := 0
+	sy := 0
+	incx := int(rx / samples)
+	incy := int(float64(ry) * ar / float64(samples))
+
+	if ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS) {
+		sx = int(rx) - 1
+		incx = -incx
+	}
+
+	if ram.metaData.Origin.IsFlipped(origin, VERT_AXIS) {
+		sy = int(ry) - 1
+		incy = -incy
+	}
+
+	y := sy
+	samplesY := uint(float64(samples) / ar)
+	for range samplesY {
+		x := sx
+
+		for range samples {
+			idx := y*irx + x
+			if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
+				return err
+			}
+			x += incx
+		}
+		y += incy
 	}
 
 	return nil
 }
 
 func (ram *RAMBackend) writeAll(w io.Writer, origin Origin) error {
-	xflipped := ram.origin.IsFlipped(origin, HORZ_AXIS)
-	yflipped := ram.origin.IsFlipped(origin, VERT_AXIS)
+	xflipped := ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS)
+	yflipped := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
 
 	if !xflipped && !yflipped {
 		_, err := w.Write(ram.data)

@@ -14,4 +14,6 @@ require (
 
 require github.com/Joey574/pt v0.0.0-20260417024713-13a33018d399
 
+require github.com/stretchr/testify v1.10.0 // indirect
+
 require golang.org/x/sys v0.43.0 // indirect; indirec

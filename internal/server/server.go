@@ -70,10 +70,10 @@ func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux.Handle("GET /{$}", s.templateHandler("index.html"))
 	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("POST /topography", s.TopographyHandler(d))
-
-	// utility
 	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js"))
 	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css"))
+
+	// utility
 	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt"))
 	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt"))
 	//mux.Handle("GET /sitemap.xml", nil)

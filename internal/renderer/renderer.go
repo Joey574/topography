@@ -42,7 +42,6 @@ func Render(
 		log.FLog(render_error, err)
 		return
 	}
-	ds.Close()
 
 	data := resp.Bytes()
 	normalize(data, resp.Type, -1.0, 1.0)

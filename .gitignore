@@ -1,6 +1,5 @@
 bin
 datasets
-*.tif
 renders/private
 renders/output
 min
