@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,11 +19,15 @@ func NewRAMBackend() *RAMBackend {
 }
 
 func (ram *RAMBackend) Name() string {
-	return "ram"
+	return "RAM"
 }
 
 func (ram *RAMBackend) Metadata() Metadata {
 	return ram.metaData
+}
+
+func (ram *RAMBackend) Close() error {
+	return nil
 }
 
 func (ram *RAMBackend) RasterX() uint {
@@ -47,10 +52,6 @@ func (ram *RAMBackend) Origin() Origin {
 
 func (ram *RAMBackend) GeoTransform() [6]float64 {
 	return ram.metaData.GeoTransform
-}
-
-func (ram *RAMBackend) Data() []byte {
-	return ram.data
 }
 
 func (ram *RAMBackend) LoadDynamic(path string) error {
@@ -136,7 +137,18 @@ func (ram *RAMBackend) Downsample(samples uint) error {
 }
 
 func (ram *RAMBackend) Transpose(origin Origin) error {
-	// TODO
+	if origin == ram.metaData.Origin {
+		return nil
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, len(ram.data)))
+	err := ram.Write(buf, origin, ram.metaData.RasterX)
+	if err != nil {
+		return err
+	}
+
+	ram.metaData.Origin = origin
+	ram.data = buf.Bytes()
 	return nil
 }
 
@@ -148,34 +160,33 @@ func (ram *RAMBackend) Write(w io.Writer, origin Origin, samples uint) error {
 		return ram.writeAll(w, origin)
 	}
 
-	rx := ram.metaData.RasterX
-	irx := int(rx)
-	ry := ram.metaData.RasterY
+	rx := int(ram.metaData.RasterX)
+	ry := int(ram.metaData.RasterY)
 	ar := ram.metaData.AspectRatio
 	bpp := int(ram.metaData.DataType.Bytes())
 
 	sx := 0
 	sy := 0
-	incx := int(rx / samples)
-	incy := int(float64(ry) * ar / float64(samples))
+	incx := float64(rx) / float64(samples)
+	incy := float64(ry) * ar / float64(samples)
+	samplesY := uint(float64(samples) / ar)
 
 	if ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS) {
-		sx = int(rx) - 1
+		sx = rx - 1
 		incx = -incx
 	}
 
 	if ram.metaData.Origin.IsFlipped(origin, VERT_AXIS) {
-		sy = int(ry) - 1
+		sy = ry - 1
 		incy = -incy
 	}
 
-	y := sy
-	samplesY := uint(float64(samples) / ar)
+	y := float64(sy)
 	for range samplesY {
-		x := sx
+		x := float64(sx)
 
 		for range samples {
-			idx := y*irx + x
+			idx := (int(y)*rx + int(x)) * bpp
 			if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
 				return err
 			}
@@ -184,6 +195,10 @@ func (ram *RAMBackend) Write(w io.Writer, origin Origin, samples uint) error {
 		y += incy
 	}
 
+	return nil
+}
+
+func (ram *RAMBackend) PartialWrite(w io.Writer, origin Origin, samples uint) error {
 	return nil
 }
 

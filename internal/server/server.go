@@ -67,7 +67,8 @@ func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux := http.NewServeMux()
 
 	// main functionality
-	mux.Handle("GET /{$}", s.templateHandler("index.html"))
+	indexData := map[string]int{"MIN_RESOLUTION": dataset.MIN_ONLINE_RESOLUTION, "MAX_RESOLUTION": dataset.MAX_ONLINE_RESOLUTION}
+	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData))
 	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("POST /topography", s.TopographyHandler(d))
 	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js"))
@@ -78,14 +79,14 @@ func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt"))
 	//mux.Handle("GET /sitemap.xml", nil)
 	mux.Handle("GET /favicon.ico", s.defaultHandler(fs, "min/misc/favicon.svg"))
-	mux.Handle("GET /about", s.templateHandler("about.html"))
-	mux.Handle("GET /contact", s.templateHandler("contact.html"))
+	mux.Handle("GET /about", s.templateHandler("about.html", nil))
+	mux.Handle("GET /contact", s.templateHandler("contact.html", nil))
 
 	// legal
-	mux.Handle("GET /tos", s.templateHandler("tos.html"))
-	mux.Handle("GET /privacy", s.templateHandler("privacy.html"))
-	mux.Handle("GET /cookies", s.templateHandler("cookies.html"))
-	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html"))
+	mux.Handle("GET /tos", s.templateHandler("tos.html", nil))
+	mux.Handle("GET /privacy", s.templateHandler("privacy.html", nil))
+	mux.Handle("GET /cookies", s.templateHandler("cookies.html", nil))
+	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", nil))
 
 	// wrappers
 	handler := s.headerHandler(mux)

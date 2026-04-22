@@ -9,13 +9,12 @@ import (
 )
 
 type Request struct {
-	Resolution     int     `json:"resolution"`
-	LatitudeStart  float64 `json:"-"`
-	LatitudeEnd    float64 `json:"-"`
-	LongitudeStart float64 `json:"-"`
-	LongitudeEnd   float64 `json:"-"`
-	UpIsNorth      bool    `json:"-"`
-	LeftIsWest     bool    `json:"-"`
+	Resolution     int            `json:"resolution"`
+	LatitudeStart  float64        `json:"-"`
+	LatitudeEnd    float64        `json:"-"`
+	LongitudeStart float64        `json:"-"`
+	LongitudeEnd   float64        `json:"-"`
+	Origin         backend.Origin `json:"-"`
 }
 
 type Response struct {

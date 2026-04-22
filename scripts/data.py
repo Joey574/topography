@@ -21,14 +21,14 @@ def create_dataset(original_path, converted_path, use_f16, downsample, dont_comp
         if not dont_compress:
             kwargs["creationOptions"] = [
                 "COMPRESS=ZSTD", "ZSTD_LEVEL=9", "NUM_THREADS=ALL_CPUS",
-                "DISCARD_LSB=2", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+                "DISCARD_LSB=1", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
             ]
     else:
         kwargs["outputType"] = gdal.GDT_Float32
 
         if not dont_compress:
             kwargs["creationOptions"] = [
-                "COMPRESS=LERC_ZSTD", "MAX_Z_ERROR=1.0", "DISCARD_LSB=2",
+                "COMPRESS=LERC_ZSTD", "MAX_Z_ERROR=1.0", "DISCARD_LSB=1",
                 "NUM_THREADS=ALL_CPUS", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
             ]
 

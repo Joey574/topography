@@ -16,6 +16,7 @@ type Metadata struct {
 type Backend interface {
 	Name() string
 	Metadata() Metadata
+	Close() error
 
 	RasterX() uint
 	RasterY() uint
@@ -25,8 +26,6 @@ type Backend interface {
 	Origin() Origin
 	GeoTransform() [6]float64
 
-	Data() []byte
-
 	LoadDynamic(path string) error
 	LoadStatic(r io.Reader) error
 
@@ -34,4 +33,5 @@ type Backend interface {
 	Transpose(origin Origin) error
 
 	Write(w io.Writer, origin Origin, samples uint) error
+	PartialWrite(w io.Writer, origin Origin, samples uint) error
 }

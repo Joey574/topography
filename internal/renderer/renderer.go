@@ -3,6 +3,7 @@ package renderer
 import (
 	"math"
 	"os"
+	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 
@@ -31,8 +32,7 @@ func Render(
 
 	resp, err := ds.GenerateResponse(&dataset.Request{
 		Resolution:     resolution,
-		UpIsNorth:      true,
-		LeftIsWest:     true,
+		Origin:         backend.SW_ORIGIN,
 		LatitudeStart:  -90.0,
 		LatitudeEnd:    90.0,
 		LongitudeStart: -180.0,

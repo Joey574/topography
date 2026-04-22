@@ -6,12 +6,11 @@ let animationFrameId;
 let settings = {
   wireframe: false,
   displacementScale: 0.10,
-  resolution: 128,
-  latResolution: 64,
-  lonResolution: 128,
+  resolution: 256,
+  latResolution: 128,
+  lonResolution: 256,
   autoRotate: false,
   color: 0x2a5784,
-  smoothingLevel: 1,
 };
 
 const geometryCache = new Map(); // Map<resolution, {geometry, originalPositions}>
@@ -188,7 +187,7 @@ function createSphere(latResolution, lonResolution) {
   sphere.castShadow = true;
   sphere.receiveShadow = true;
 
-  const MAX_VERTICES_PER_SEGMENT = 50000;
+  const MAX_VERTICES_PER_SEGMENT = 5000000;
   const heightVertices = latResolution+1;
   const maxWidthVertices = Math.floor(MAX_VERTICES_PER_SEGMENT / heightVertices) - 1;
   const segments = Math.max(1, Math.ceil(lonResolution / maxWidthVertices));
@@ -262,62 +261,6 @@ function normalizeDisplacements(displacements) {
 // Only called explicitly after a successful backend fetch
 // ============================================================================
 
-function smoothDisplacementData(displacements, latResolution, lonResolution, iterations = 1) {
-  if (iterations === 0) return displacements;
-
-  const latDivisions = latResolution + 1;
-  const lonDivisions = lonResolution + 1;
-  
-  let current = new Float32Array(displacements);
-  let next = new Float32Array(displacements.length);
-
-  // Gaussian kernel weights (center, adjacent, diagonal)
-  const centerWeight = 0.5;
-  const adjacentWeight = 0.125;
-  const diagonalWeight = 0.0625;
-
-  for (let iter = 0; iter < iterations; iter++) {
-    for (let lat = 0; lat < latDivisions; lat++) {
-      for (let lon = 0; lon < lonDivisions; lon++) {
-        const idx = lat * lonDivisions + lon;
-        
-        let sum = current[idx] * centerWeight;
-        let weightSum = centerWeight;
-
-        // Sample 8 neighbors with wrapping at poles and longitude seam
-        const neighbors = [
-          [-1, -1], [-1, 0], [-1, 1],  // above
-          [0,  -1],          [0, 1],   // sides
-          [1,  -1], [1,  0], [1, 1]    // below
-        ];
-
-        neighbors.forEach(([dLat, dLon], i) => {
-          const nLat = lat + dLat;
-          const nLon = (lon + dLon + lonDivisions) % lonDivisions;
-
-          // Skip if out of bounds vertically (poles)
-          if (nLat < 0 || nLat >= latDivisions) return;
-
-          const nIdx = nLat * lonDivisions + nLon;
-          const weight = (Math.abs(dLat) === 1 && Math.abs(dLon) === 1) 
-            ? diagonalWeight 
-            : adjacentWeight;
-
-          sum += current[nIdx] * weight;
-          weightSum += weight;
-        });
-
-        next[idx] = sum / weightSum;
-      }
-    }
-
-    // Swap buffers
-    [current, next] = [next, current];
-  }
-
-  return current;
-}
-
 function applyBackendDisplacement(data) {
   if (!sphere || !data || !data.displacements || isApplyingDisplacement) return;
 
@@ -328,14 +271,6 @@ function applyBackendDisplacement(data) {
   
   // Normalize the raw displacement data first
   const normalizedDisplacements = normalizeDisplacements(data.displacements)
-
-  // Apply smoothing to the normalized data
-  const smoothedDisplacements = smoothDisplacementData(
-    normalizedDisplacements, 
-    latResolution,
-    lonResolution,
-    data.smoothingLevel
-  );
 
   const latDivisions = latResolution + 1;
   const lonDivisions = lonResolution + 1;
@@ -357,7 +292,7 @@ function applyBackendDisplacement(data) {
       const lonIndex = Math.round(((phi + Math.PI) / (Math.PI * 2)) * lonResolution) % lonDivisions;
 
       const backendIndex = latIndex * lonDivisions + lonIndex;
-      displacementArray[i] = smoothedDisplacements[backendIndex] || 0;
+      displacementArray[i] = normalizedDisplacements[backendIndex] || 0;
     }
 
     geometry.setAttribute('displacement', new THREE.BufferAttribute(displacementArray, 1));
@@ -482,7 +417,6 @@ function setupEventListeners() {
 
   document.getElementById('displacement-slider').addEventListener('input', onDisplacementChange);
   document.getElementById('resolution-slider').addEventListener('input', onResolutionChange);
-  document.getElementById('smoothing-slider').addEventListener('input', onSmoothingChange);
   document.getElementById('wireframe-toggle').addEventListener('change', onWireframeToggle);
   document.getElementById('autorotate-toggle').addEventListener('change', onAutoRotateToggle);
   document.getElementById('color-picker').addEventListener('input', onColorChange);
@@ -523,16 +457,6 @@ function onWireframeToggle(e) {
     sphere.children.forEach(mesh => {
       mesh.material = newMat;
     });
-  }
-}
-
-function onSmoothingChange(e) {
-  settings.smoothingLevel = parseInt(e.target.value);
-  document.getElementById('smoothing-value').textContent = settings.smoothingLevel;
-
-  // Reapply displacement with new smoothing level
-  if (backendData) {
-    applyBackendDisplacement(backendData);
   }
 }
 

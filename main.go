@@ -19,7 +19,7 @@ import (
 var fs embed.FS
 
 type Args struct {
-	File string `short:"f" long:"file" required:"true"`
+	File string `short:"f" long:"file"`
 	Log  string `short:"l" long:"log"`
 
 	Server bool `long:"server"`
@@ -64,17 +64,37 @@ func run() {
 		logger.SetLogFile(f)
 	}
 
-	backend := backend.NewRAMBackend()
-	f, err := fs.Open("min/misc/srtm15plus_f16_4096.tif")
-	if err != nil {
-		log.Fatalln(err)
+	// build the requested backend
+	var bck backend.Backend
+	if args.Disk {
+		bck = backend.NewDISKBackend()
+	} else {
+		bck = backend.NewRAMBackend()
 	}
-	backend.LoadStatic(f)
-	d := dataset.NewDataset(backend)
+
+	// if a file was provided, we'll attempt to load it dynamically, otherwise we assume a default static tiff
+	if args.File != "" {
+		err = bck.LoadDynamic(args.File)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		f, err := fs.Open("min/misc/srtm15plus_f16_4096.tif")
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = bck.LoadStatic(f)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	d := dataset.NewDataset(bck)
 
 	if args.Server {
 		h := server.NewServer(fs, d)
-		http.ListenAndServe(":8080", h.Handler)
+		http.ListenAndServe("0.0.0.0:8080", h.Handler)
 	}
 
 	if args.Render {

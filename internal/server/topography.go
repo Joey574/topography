@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 )
@@ -20,8 +21,7 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 			LatitudeEnd:    90.0,
 			LongitudeStart: -180.0,
 			LongitudeEnd:   180.0,
-			UpIsNorth:      false,
-			LeftIsWest:     false,
+			Origin:         backend.NW_ORIGIN,
 		}
 
 		// parse out the requested resolution
