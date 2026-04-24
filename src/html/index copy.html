@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Earth Topography Viewer</title>
   <link rel="stylesheet" href="static/css/style.css">
   <link rel="apple-touch-icon" href="favicon.ico">
 </head>
 <body>
 
+<!-- Header -->
 <div class="header">
   <div>
     <h1>EARTH TOPOGRAPHY VIEWER</h1>
@@ -20,6 +21,7 @@
   </div>
 </div>
 
+<!-- Control Panel -->
 <div class="control-panel">
   <h3 class="panel-title">Controls</h3>
 
@@ -51,15 +53,18 @@
   </label>
 </div>
 
+<!-- Instructions -->
 <div class="instructions">
   <div class="instructions-title">CONTROLS</div>
-  <div><span class="desktop-only">Left Click + Drag</span><span class="mobile-only">1-Finger Drag</span>: Rotate</div>
-  <div><span class="desktop-only">Right Click + Drag</span><span class="mobile-only">2-Finger Drag</span>: Pan</div>
-  <div><span class="desktop-only">Scroll</span><span class="mobile-only">Pinch</span>: Zoom</div>
+  <div>Left Click + Drag: Rotate</div>
+  <div>Right Click + Drag: Pan</div>
+  <div>Scroll: Zoom</div>
 </div>
 
+<!-- 3D Canvas -->
 <div id="canvas-container"></div>
 
+<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="static/js/script.js"></script>
