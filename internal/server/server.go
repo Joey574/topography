@@ -4,7 +4,7 @@ import (
 	"embed"
 	"net/http"
 	"text/template"
-	"topography/v2/internal/dataset"
+	"topography/v2/internal/backend"
 	"topography/v2/internal/log"
 
 	"golang.org/x/time/rate"
@@ -16,7 +16,7 @@ type Server struct {
 	limiter *rate.Limiter
 }
 
-func NewServer(fs embed.FS, d *dataset.Dataset) *Server {
+func NewServer(fs embed.FS, d *backend.Backend) *Server {
 	s := &Server{}
 	s.tmpl = template.Must(template.ParseFS(fs, "min/html/*.html"))
 	s.limiter = rate.NewLimiter(15, 30)
@@ -75,11 +75,15 @@ func (s *Server) recoveryHandler(next http.Handler) http.Handler {
 }
 
 // Returns a http.Handler packaged with all the handlers and security protections
-func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
-	mux := http.NewServeMux()
+func (s *Server) setHandlers(fs embed.FS, d *backend.Backend) {
+	indexData := map[string]int{
+		"STEP_VALUE":     backend.STEP_VALUE,
+		"MIN_RESOLUTION": backend.MIN_RESOLUTION,
+		"MAX_RESOLUTION": backend.MAX_RESOLUTION,
+	}
 
 	// main functionality
-	indexData := map[string]int{"MIN_RESOLUTION": dataset.MIN_ONLINE_RESOLUTION, "MAX_RESOLUTION": dataset.MAX_ONLINE_RESOLUTION}
+	mux := http.NewServeMux()
 	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData))
 	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("GET /topography", s.TopographyHandler(d))

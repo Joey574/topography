@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 	"topography/v2/internal/log"
 )
 
-func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
+func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -20,19 +21,18 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 		// parse out resolution and verify bounds
 		query := r.URL.Query()
 		res, err := strconv.ParseUint(query.Get("res"), 10, 64)
-		if err != nil || res > dataset.MAX_ONLINE_RESOLUTION || res < dataset.MIN_ONLINE_RESOLUTION {
+		if err != nil ||
+			res > backend.MAX_RESOLUTION ||
+			res < backend.MIN_RESOLUTION ||
+			res%backend.STEP_VALUE != 0 {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 
 		// basic request outline
-		req := &dataset.Request{
-			Resolution:     int(res),
-			LatitudeStart:  -90.0,
-			LatitudeEnd:    90.0,
-			LongitudeStart: -180.0,
-			LongitudeEnd:   180.0,
-			Origin:         backend.NW_ORIGIN,
+		req := &backend.Request{
+			Resolution: int(res),
+			Origin:     dataset.NW_ORIGIN,
 		}
 
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -50,10 +50,10 @@ func (s *Server) TopographyHandler(d *dataset.Dataset) http.HandlerFunc {
 	}
 }
 
-func generateETag(req *dataset.Request) string {
-	h := sha256.New()
-	fmt.Fprintf(h, "%d-%f-%f-%f-%f-%d",
-		req.Resolution, req.LatitudeStart, req.LatitudeEnd,
-		req.LongitudeStart, req.LongitudeEnd, req.Origin)
-	return fmt.Sprintf(`"%x"`, h.Sum(nil)[:16])
+func generateETag(req *backend.Request) string {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(req.Resolution))
+
+	h := sha256.Sum256(buf)
+	return fmt.Sprintf(`"%x"`, h)
 }

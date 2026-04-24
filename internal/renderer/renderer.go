@@ -1,9 +1,9 @@
 package renderer
 
 import (
+	"bytes"
 	"math"
 	"os"
-	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func Render(
-	ds *dataset.Dataset,
+	ds dataset.Dataset,
 	width int,
 	height int,
 	resolution int,
@@ -30,28 +30,24 @@ func Render(
 	log.FLog(initialize_log)
 	scene := pt.Scene{}
 
-	resp, err := ds.GenerateResponse(&dataset.Request{
-		Resolution:     resolution,
-		Origin:         backend.SW_ORIGIN,
-		LatitudeStart:  -90.0,
-		LatitudeEnd:    90.0,
-		LongitudeStart: -180.0,
-		LongitudeEnd:   180.0,
-	}, false, nil)
+	buf := bytes.NewBuffer(make([]byte, 0, ds.Size()))
+
+	err = ds.Write(buf, dataset.SW_ORIGIN, uint(resolution))
 	if err != nil {
 		log.FLog(render_error, err)
 		return
 	}
 
-	data := resp.Bytes()
-	normalize(data, resp.Type, -1.0, 1.0)
+	data := buf.Bytes()
+	dtype := ds.DataType()
+	normalize(data, dtype, -1.0, 1.0)
 
 	sphere := &Sphere{
 		Radius:    1.0,
 		Data:      data,
-		Type:      resp.Type,
-		Width:     resp.ResolutionX,
-		Height:    resp.ResolutionY,
+		Type:      dtype,
+		Width:     resolution,
+		Height:    int(float64(resolution) / ds.AspectRatio()),
 		MaxHeight: 0.075,
 	}
 

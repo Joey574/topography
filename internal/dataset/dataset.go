@@ -1,23 +1,42 @@
 package dataset
 
 import (
-	"sync"
-	"topography/v2/internal/backend"
+	"io"
 )
 
-const (
-	MIN_ONLINE_RESOLUTION = 256
-	MAX_ONLINE_RESOLUTION = 4096
-)
-
-type Dataset struct {
-	backend backend.Backend
-	mu      sync.RWMutex
+type Metadata struct {
+	RasterX      uint
+	RasterY      uint
+	AspectRatio  float64
+	DataType     DataType
+	Origin       Origin
+	GeoTransform [6]float64
 }
 
-func NewDataset(backend backend.Backend) *Dataset {
-	d := &Dataset{}
-	d.backend = backend
-	//log.FLog(initialize_log, isServer, downsample)
-	return d
+type Dataset interface {
+	Name() string
+	Metadata() Metadata
+	Close() error
+
+	RasterX() uint
+	RasterY() uint
+	AspectRatio() float64
+
+	DataType() DataType
+	Origin() Origin
+	GeoTransform() [6]float64
+
+	Size() uint
+
+	LoadDynamic(path string) error
+	LoadStatic(r io.Reader) error
+
+	Downsample(samples uint) error
+	Transpose(origin Origin) error
+
+	Copy() Dataset
+
+	WriteAll(w io.Writer, origin Origin) error
+	Write(w io.Writer, origin Origin, samples uint) error
+	PartialWrite(w io.Writer, origin Origin, samples uint) error
 }

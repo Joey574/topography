@@ -1,4 +1,4 @@
-package backend
+package dataset
 
 import (
 	"bytes"
@@ -9,52 +9,56 @@ import (
 	gdal "github.com/seerai/godal"
 )
 
-type RAMBackend struct {
+type RAMDataset struct {
 	metaData Metadata
 	data     []byte
 }
 
-func NewRAMBackend() *RAMBackend {
-	return &RAMBackend{}
+func NewRAMBackend() *RAMDataset {
+	return &RAMDataset{}
 }
 
-func (ram *RAMBackend) Name() string {
+func (ram *RAMDataset) Name() string {
 	return "RAM"
 }
 
-func (ram *RAMBackend) Metadata() Metadata {
+func (ram *RAMDataset) Metadata() Metadata {
 	return ram.metaData
 }
 
-func (ram *RAMBackend) Close() error {
+func (ram *RAMDataset) Close() error {
 	return nil
 }
 
-func (ram *RAMBackend) RasterX() uint {
+func (ram *RAMDataset) RasterX() uint {
 	return ram.metaData.RasterX
 }
 
-func (ram *RAMBackend) RasterY() uint {
+func (ram *RAMDataset) RasterY() uint {
 	return ram.metaData.RasterY
 }
 
-func (ram *RAMBackend) AspectRatio() float64 {
+func (ram *RAMDataset) AspectRatio() float64 {
 	return ram.metaData.AspectRatio
 }
 
-func (ram *RAMBackend) DataType() DataType {
+func (ram *RAMDataset) DataType() DataType {
 	return ram.metaData.DataType
 }
 
-func (ram *RAMBackend) Origin() Origin {
+func (ram *RAMDataset) Origin() Origin {
 	return ram.metaData.Origin
 }
 
-func (ram *RAMBackend) GeoTransform() [6]float64 {
+func (ram *RAMDataset) GeoTransform() [6]float64 {
 	return ram.metaData.GeoTransform
 }
 
-func (ram *RAMBackend) LoadDynamic(path string) error {
+func (ram *RAMDataset) Size() uint {
+	return ram.metaData.RasterX * ram.metaData.RasterY * uint(ram.metaData.DataType.Bytes())
+}
+
+func (ram *RAMDataset) LoadDynamic(path string) error {
 	ds, err := gdal.Open(path, gdal.ReadOnly)
 	if err != nil {
 		return err
@@ -80,7 +84,7 @@ func (ram *RAMBackend) LoadDynamic(path string) error {
 	return ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
 }
 
-func (ram *RAMBackend) LoadStatic(r io.Reader) error {
+func (ram *RAMDataset) LoadStatic(r io.Reader) error {
 	f, err := os.CreateTemp("", "*.tif")
 	if err != nil {
 		return err
@@ -106,37 +110,27 @@ func (ram *RAMBackend) LoadStatic(r io.Reader) error {
 	return nil
 }
 
-func (ram *RAMBackend) Downsample(samples uint) error {
-	if ram.metaData.RasterX == samples {
+func (ram *RAMDataset) Downsample(samples uint) error {
+	if samples >= ram.metaData.RasterX {
 		return nil
 	}
 
-	rx := ram.metaData.RasterX
-	ry := ram.metaData.RasterY
 	ar := ram.metaData.AspectRatio
-
 	newRasterX := uint(samples)
 	newRasterY := uint(float64(samples) / ar)
+	size := newRasterX * newRasterY * uint(ram.metaData.DataType.Bytes())
 
-	incx := rx / newRasterX
-	incy := ry / newRasterY
+	buf := bytes.NewBuffer(make([]byte, 0, size))
+	ram.Write(buf, ram.metaData.Origin, samples)
 
-	idx := 0
-	for y := uint(0); y < ry; y += incy {
-		for x := uint(0); x < rx; x += incx {
-			// TODO : implement averaging among points
-			ram.data[idx] = ram.data[y*rx+x]
-			idx++
-		}
-	}
-
-	ram.data = ram.data[:idx]
+	ram.data = buf.Bytes()
 	ram.metaData.RasterX = newRasterX
 	ram.metaData.RasterY = newRasterY
+	// TODO : update geo transform
 	return nil
 }
 
-func (ram *RAMBackend) Transpose(origin Origin) error {
+func (ram *RAMDataset) Transpose(origin Origin) error {
 	if origin == ram.metaData.Origin {
 		return nil
 	}
@@ -149,15 +143,26 @@ func (ram *RAMBackend) Transpose(origin Origin) error {
 
 	ram.metaData.Origin = origin
 	ram.data = buf.Bytes()
+	// TODO : update geo transform
 	return nil
 }
 
-func (ram *RAMBackend) Write(w io.Writer, origin Origin, samples uint) error {
+func (ram *RAMDataset) Copy() Dataset {
+	data := make([]byte, len(ram.data))
+	copy(data, ram.data)
+
+	return &RAMDataset{
+		metaData: ram.metaData,
+		data:     data,
+	}
+}
+
+func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	// handle special case of exact resolution match
 	// special case is included as this is assumed
 	// to be the most common case
 	if ram.metaData.RasterX == samples {
-		return ram.writeAll(w, origin)
+		return ram.WriteAll(w, origin)
 	}
 
 	rx := int(ram.metaData.RasterX)
@@ -198,11 +203,11 @@ func (ram *RAMBackend) Write(w io.Writer, origin Origin, samples uint) error {
 	return nil
 }
 
-func (ram *RAMBackend) PartialWrite(w io.Writer, origin Origin, samples uint) error {
+func (ram *RAMDataset) PartialWrite(w io.Writer, origin Origin, samples uint) error {
 	return nil
 }
 
-func (ram *RAMBackend) writeAll(w io.Writer, origin Origin) error {
+func (ram *RAMDataset) WriteAll(w io.Writer, origin Origin) error {
 	xflipped := ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS)
 	yflipped := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
 

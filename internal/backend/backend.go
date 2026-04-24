@@ -1,37 +1,49 @@
 package backend
 
 import (
-	"io"
+	"sync"
+	"topography/v2/internal/dataset"
 )
 
-type Metadata struct {
-	RasterX      uint
-	RasterY      uint
-	AspectRatio  float64
-	DataType     DataType
-	Origin       Origin
-	GeoTransform [6]float64
+const (
+	STEP_VALUE     = 256
+	MIN_RESOLUTION = 256
+	MAX_RESOLUTION = 4096
+)
+
+type Backend struct {
+	datasets []dataset.Dataset
+	mu       sync.RWMutex
 }
 
-type Backend interface {
-	Name() string
-	Metadata() Metadata
-	Close() error
+func NewBackend(ds dataset.Dataset) (*Backend, error) {
+	d := &Backend{}
 
-	RasterX() uint
-	RasterY() uint
-	AspectRatio() float64
+	if ds.RasterX() != MAX_RESOLUTION {
+		err := ds.Downsample(MAX_RESOLUTION)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	DataType() DataType
-	Origin() Origin
-	GeoTransform() [6]float64
+	// +1 is for inclusive of min and max
+	size := ((MAX_RESOLUTION - MIN_RESOLUTION) / STEP_VALUE) + 1
+	d.datasets = make([]dataset.Dataset, size)
+	d.datasets[len(d.datasets)-1] = ds
 
-	LoadDynamic(path string) error
-	LoadStatic(r io.Reader) error
+	// create downasampled dataset to handle the different valid requests
+	for i := range len(d.datasets) - 1 {
+		res := MIN_RESOLUTION + (i * STEP_VALUE)
 
-	Downsample(samples uint) error
-	Transpose(origin Origin) error
+		tmp := ds.Copy()
+		err := tmp.Downsample(uint(res))
+		if err != nil {
+			return nil, err
+		}
 
-	Write(w io.Writer, origin Origin, samples uint) error
-	PartialWrite(w io.Writer, origin Origin, samples uint) error
+		d.datasets[i] = tmp
+	}
+
+	//log.FLog(initialize_log, isServer, downsample)
+	return d, nil
 }

@@ -65,16 +65,16 @@ func run() {
 	}
 
 	// build the requested backend
-	var bck backend.Backend
+	var ds dataset.Dataset
 	if args.Disk {
-		bck = backend.NewDISKBackend()
+		ds = dataset.NewDISKBackend()
 	} else {
-		bck = backend.NewRAMBackend()
+		ds = dataset.NewRAMBackend()
 	}
 
 	// if a file was provided, we'll attempt to load it dynamically, otherwise we assume a default static tiff
 	if args.File != "" {
-		err = bck.LoadDynamic(args.File)
+		err = ds.LoadDynamic(args.File)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -84,16 +84,19 @@ func run() {
 			log.Fatalln(err)
 		}
 
-		err = bck.LoadStatic(f)
+		err = ds.LoadStatic(f)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	d := dataset.NewDataset(bck)
-
 	if args.Server {
-		h := server.NewServer(fs, d)
+		bck, err := backend.NewBackend(ds)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		h := server.NewServer(fs, bck)
 		http.ListenAndServe("0.0.0.0:8080", h.Handler)
 	}
 
@@ -110,7 +113,7 @@ func run() {
 		}
 
 		renderer.Render(
-			d,
+			ds,
 			args.Width,
 			args.Height,
 			args.Samples,

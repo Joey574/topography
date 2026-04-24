@@ -2,7 +2,7 @@ package renderer
 
 import (
 	"math"
-	"topography/v2/internal/backend"
+	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 	"unsafe"
 
@@ -13,7 +13,7 @@ import (
 type Sphere struct {
 	Radius    float64
 	Data      []byte
-	Type      backend.DataType
+	Type      dataset.DataType
 	Width     int
 	Height    int
 	MaxHeight float64
@@ -48,13 +48,13 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	// Sample the 4 corners from the 1D slice
 	var h00, h10, h01, h11 float64
 	switch s.Type {
-	case backend.FLOAT_32:
+	case dataset.FLOAT_32:
 		bpp := 4
 		h00 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp])))
 		h10 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp])))
 		h01 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp])))
 		h11 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp])))
-	case backend.FLOAT_16:
+	case dataset.FLOAT_16:
 		bpp := 2
 		h00 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp]))).Float32())
 		h10 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp]))).Float32())

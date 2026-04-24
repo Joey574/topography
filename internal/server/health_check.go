@@ -3,10 +3,10 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"topography/v2/internal/dataset"
+	"topography/v2/internal/backend"
 )
 
-func (s *Server) HealthCheck(d *dataset.Dataset) http.HandlerFunc {
+func (s *Server) HealthCheck(d *backend.Backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)

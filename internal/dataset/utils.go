@@ -1,4 +1,4 @@
-package backend
+package dataset
 
 import (
 	gdal "github.com/seerai/godal"

@@ -1,25 +1,21 @@
-package dataset
+package backend
 
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"io"
-	"topography/v2/internal/backend"
+	"topography/v2/internal/dataset"
 )
 
 type Request struct {
-	Resolution     int            `json:"resolution"`
-	LatitudeStart  float64        `json:"-"`
-	LatitudeEnd    float64        `json:"-"`
-	LongitudeStart float64        `json:"-"`
-	LongitudeEnd   float64        `json:"-"`
-	Origin         backend.Origin `json:"-"`
+	Resolution int            `json:"resolution"`
+	Origin     dataset.Origin `json:"-"`
 }
 
 type Response struct {
 	Request *Request
-	Type    backend.DataType
+	Type    dataset.DataType
 
 	Vertices    int
 	ResolutionX int
@@ -29,7 +25,7 @@ type Response struct {
 	buffer *bytes.Buffer
 }
 
-func NewResponse(req *Request, aspectRatio float64, dataType backend.DataType, w io.Writer) *Response {
+func NewResponse(req *Request, aspectRatio float64, dataType dataset.DataType, w io.Writer) *Response {
 	resX := req.Resolution
 	resY := int(float64(req.Resolution) / aspectRatio)
 	verts := resX * resY
