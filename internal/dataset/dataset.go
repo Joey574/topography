@@ -14,8 +14,13 @@ type Metadata struct {
 }
 
 type Dataset interface {
+	// returns the name of the dataset for identification
 	Name() string
+
+	// returns the underlying metadata of the dataset
 	Metadata() Metadata
+
+	// close the dataset, freeing any allocated resources
 	Close() error
 
 	RasterX() uint

@@ -79,7 +79,7 @@ func (s *Server) setHandlers(fs embed.FS, d *backend.Backend) {
 	// utility
 	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt"))
 	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt"))
-	//mux.Handle("GET /sitemap.xml", nil)
+	mux.Handle("GET /sitemap.xml", s.defaultHandler(fs, "min/misc/sitemap.xml"))
 	mux.Handle("GET /favicon.ico", s.defaultHandler(fs, "min/misc/favicon.svg"))
 	mux.Handle("GET /about", s.templateHandler("about.html", nil))
 	mux.Handle("GET /contact", s.templateHandler("contact.html", nil))

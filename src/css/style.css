@@ -8,23 +8,30 @@ body {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%);
   color: #e0e6ed;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-wrapper {
+  flex: 1;
+  position: relative;
   overflow: hidden;
-  width: 100vw;
-  height: 100vh;
+  min-height: 600px;
 }
 
 #canvas-container {
   width: 100%;
   height: 100%;
-}
-
-.header {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
+}
+
+.header {
+  position: relative;
   padding: 20px 30px;
-  background: rgba(10, 14, 26, 0.85);
+  background: rgba(10, 14, 26, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(74, 144, 226, 0.2);
   z-index: 10;
@@ -58,9 +65,8 @@ h1 {
 
 .control-panel {
   position: absolute;
-  top: 100px;
+  top: 20px;
   left: 30px;
-  /* Dynamic width: 25% of viewport, but with reasonable limits */
   width: 25vw;
   min-width: 200px;
   max-width: 320px;
@@ -167,6 +173,74 @@ input[type="checkbox"] {
 /* Base states for instruction swapping */
 .mobile-only { display: none; }
 .desktop-only { display: inline; }
+
+/* =========================================================
+   FOOTER STYLING - Midnight Theme
+   ========================================================= */
+.site-footer {
+  background: linear-gradient(180deg, rgba(15, 20, 30, 0.98) 0%, rgba(10, 14, 26, 0.98) 100%);
+  color: #7a8ba0;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid rgba(74, 144, 226, 0.3);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  backdrop-filter: blur(10px);
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.footer-nav,
+.footer-legal {
+  display: flex;
+  justify-content: center;
+}
+
+.footer-info {
+  order: 2;
+  text-align: center;
+}
+
+.footer-info p {
+  color: #7a8ba0;
+  font-size: 0.65rem;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footer-links li {
+  margin: 0;
+}
+
+.footer-links a {
+  color: #4a90e2;
+  text-decoration: none;
+  font-size: 0.7rem;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+}
+
+.footer-links a:hover {
+  color: #7b68ee;
+  text-decoration: underline;
+  text-decoration-color: rgba(123, 104, 238, 0.5);
+}
+
 /* =========================================================
    MOBILE RESPONSIVENESS (Screens smaller than 768px)
    ========================================================= */
@@ -188,10 +262,13 @@ input[type="checkbox"] {
     gap: 10px;
     font-size: 10px;
   }
+
+  .viewer-wrapper {
+    min-height: 500px;
+  }
   
   .control-panel {
-    /* More dynamic on mobile: 40% of viewport width */
-    top: 90px;
+    top: 10px;
     left: 3vw;
     width: 40vw;
     min-width: 180px;
@@ -237,13 +314,39 @@ input[type="checkbox"] {
   /* Swap to touch-based instructions */
   .desktop-only { display: none; }
   .mobile-only { display: inline; }
+
+  /* Footer responsive */
+  .footer-container {
+    gap: 0.3rem;
+  }
+
+  .site-footer {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .footer-links {
+    gap: 0.75rem;
+    font-size: 0.65rem;
+  }
 }
 
 /* Extra small screens */
 @media (max-width: 480px) {
+  .viewer-wrapper {
+    min-height: 400px;
+  }
+
   .control-panel {
     width: 45vw;
     min-width: 160px;
     padding: 2.5vw;
+  }
+
+  .site-footer {
+    padding: 0.3rem 0.5rem;
+  }
+
+  .footer-links {
+    gap: 0.5rem;
   }
 }

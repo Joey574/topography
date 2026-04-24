@@ -26,7 +26,7 @@ type Args struct {
 	Render bool `long:"render"`
 	Disk   bool `long:"disk"`
 
-	Samples    int     `short:"s" long:"samples" default:"86400"`
+	Samples    int     `short:"s" long:"samples" default:"16384"`
 	Iterations int     `short:"i" long:"iterations" default:"100"`
 	Width      int     `long:"width" default:"800"`
 	Height     int     `long:"height" default:"800"`
@@ -84,8 +84,7 @@ func run() {
 			log.Fatalln(err)
 		}
 
-		err = ds.LoadStatic(f)
-		if err != nil {
+		if err = ds.LoadStatic(f); err != nil {
 			log.Fatalln(err)
 		}
 	}

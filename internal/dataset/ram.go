@@ -75,14 +75,7 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 
 	rx := ram.metaData.RasterX
 	ry := ram.metaData.RasterY
-	size := rx * ry
-
-	switch ram.metaData.DataType {
-	case FLOAT_16:
-		ram.data = make([]byte, size*2)
-	case FLOAT_32:
-		ram.data = make([]byte, size*4)
-	}
+	ram.data = make([]byte, ram.Size())
 
 	err = ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
 	if err != nil {

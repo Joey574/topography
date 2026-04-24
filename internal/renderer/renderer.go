@@ -30,13 +30,15 @@ func Render(
 	log.Logf(initialize_log)
 	scene := pt.Scene{}
 
-	buf := bytes.NewBuffer(make([]byte, 0, ds.Size()))
+	size := ds.RasterX() * uint(float64(ds.RasterY())/ds.AspectRatio()) / uint(ds.DataType().Bytes())
+	buf := bytes.NewBuffer(make([]byte, 0, size))
 
-	err = ds.Write(buf, dataset.SW_ORIGIN, uint(resolution))
+	err = ds.Write(buf, dataset.NW_ORIGIN, uint(resolution))
 	if err != nil {
 		log.Logf(render_error, err)
 		return
 	}
+	ds.Close()
 
 	data := buf.Bytes()
 	dtype := ds.DataType()
@@ -70,18 +72,18 @@ func Render(
 	)
 
 	light := pt.NewSphere(
-		pt.V(-x*20, y*20, -z*20),
+		pt.V(x*5, y*5, z*5),
 		1,
-		pt.LightMaterial(pt.White, 2000),
+		pt.LightMaterial(pt.White, 10),
 	)
 	scene.Add(light)
 
 	sampler := pt.NewSampler(4, 4)
 	renderer := pt.NewRenderer(&scene, &camera, sampler, width, height)
 
-	renderer.AdaptiveSamples = 128
-	renderer.SamplesPerPixel = 4
-	renderer.FireflySamples = 4
+	renderer.AdaptiveSamples = 0
+	renderer.SamplesPerPixel = 1
+	renderer.FireflySamples = 1
 	renderer.Verbose = false
 	renderer.NumCPU = cores
 

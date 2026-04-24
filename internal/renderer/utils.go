@@ -6,13 +6,7 @@ import (
 	"topography/v2/internal/log"
 	"unsafe"
 
-	gdal "github.com/seerai/godal"
 	"github.com/x448/float16"
-)
-
-const (
-	_FLOAT_32 = gdal.Float32
-	_FLOAT_16 = gdal.DataType(15)
 )
 
 func normalize(xs []byte, t dataset.DataType, a, b float32) {
