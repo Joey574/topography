@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	STEP_VALUE     = 256
-	MIN_RESOLUTION = 256
+	STEP_VALUE     = 512
+	MIN_RESOLUTION = 512
 	MAX_RESOLUTION = 4096
 )
 
