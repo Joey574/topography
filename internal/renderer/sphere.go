@@ -61,7 +61,7 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 		h01 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp]))).Float32())
 		h11 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp]))).Float32())
 	default:
-		log.FLog(render_error, "unrecognized data type!")
+		log.Logf(render_error, "unrecognized data type!")
 	}
 
 	// Interpolate X

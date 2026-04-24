@@ -6,9 +6,9 @@ let animationFrameId;
 let settings = {
   wireframe: false,
   displacementScale: 0.10,
-  resolution: 256,
-  latResolution: 128,
-  lonResolution: 256,
+  resolution: 512,
+  latResolution: 256,
+  lonResolution: 512,
   autoRotate: false,
   color: 0x2a5784,
 };
@@ -59,7 +59,7 @@ function init() {
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.minDistance = 1.5;
+  controls.minDistance = 1.25;
   controls.maxDistance = 100.0;
   controls.autoRotate = false;
   controls.autoRotateSpeed = 0.5;

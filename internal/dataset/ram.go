@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"topography/v2/internal/log"
 
 	gdal "github.com/seerai/godal"
 )
@@ -61,12 +62,14 @@ func (ram *RAMDataset) Size() uint {
 func (ram *RAMDataset) LoadDynamic(path string) error {
 	ds, err := gdal.Open(path, gdal.ReadOnly)
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 	defer ds.Close()
 
 	ram.metaData, err = parseMetaData(&ds)
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 
@@ -81,28 +84,38 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 		ram.data = make([]byte, size*4)
 	}
 
-	return ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
+	err = ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
+	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
+		return err
+	}
+
+	return nil
 }
 
 func (ram *RAMDataset) LoadStatic(r io.Reader) error {
 	f, err := os.CreateTemp("", "*.tif")
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 	defer f.Close()
 
 	_, err = io.Copy(f, r)
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 
 	path, err := filepath.Abs(f.Name())
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 
 	err = ram.LoadDynamic(path)
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 
@@ -121,7 +134,11 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 	size := newRasterX * newRasterY * uint(ram.metaData.DataType.Bytes())
 
 	buf := bytes.NewBuffer(make([]byte, 0, size))
-	ram.Write(buf, ram.metaData.Origin, samples)
+	err := ram.Write(buf, ram.metaData.Origin, samples)
+	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
+		return err
+	}
 
 	ram.data = buf.Bytes()
 	ram.metaData.RasterX = newRasterX
@@ -138,6 +155,7 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 	buf := bytes.NewBuffer(make([]byte, 0, len(ram.data)))
 	err := ram.Write(buf, origin, ram.metaData.RasterX)
 	if err != nil {
+		log.Logf(dataset_error, ram.Name(), err)
 		return err
 	}
 
@@ -204,7 +222,7 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 }
 
 func (ram *RAMDataset) PartialWrite(w io.Writer, origin Origin, samples uint) error {
-	return nil
+	return nil // TODO
 }
 
 func (ram *RAMDataset) WriteAll(w io.Writer, origin Origin) error {

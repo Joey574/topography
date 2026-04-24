@@ -13,7 +13,7 @@ func SetLogFile(nw io.Writer) {
 	w = nw
 }
 
-func FLog(format string, a ...any) {
+func Logf(format string, a ...any) {
 	if w == nil {
 		return
 	}

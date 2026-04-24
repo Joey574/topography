@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"time"
@@ -8,27 +9,33 @@ import (
 	"topography/v2/internal/log"
 )
 
-func (d *Backend) GenerateResponse(req *Request, writeHeader bool, w io.Writer) (*Response, error) {
-	log.FLog(request_log, req.Resolution)
+func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
+	log.Logf(request_log, req.Resolution)
 	defer func(start time.Time) {
-		log.FLog(served_log, time.Since(start))
+		log.Logf(served_log, time.Since(start))
 	}(time.Now())
 
 	idx := (req.Resolution / STEP_VALUE) - 1
-	ds := d.datasets[idx]
+	ds := d.ds[idx]
 	if req.Resolution != int(ds.RasterX()) {
-		err := fmt.Errorf("bad request")
-		log.FLog(dataset_error, err)
-		return nil, err
+		err := fmt.Errorf("expected resolution '%d', got '%d'", ds.RasterX(), req.Resolution)
+		log.Logf(backend_error, err)
+		return err
 	}
 
-	res := NewResponse(req, ds.AspectRatio(), ds.DataType(), w)
-	if writeHeader {
-		if err := res.WriteHeader(); err != nil {
-			log.FLog(dataset_error, err)
-			return nil, err
-		}
+	resX := req.Resolution
+	resY := int(float64(req.Resolution) / ds.AspectRatio())
+	verts := resX * resY
+
+	var header [16]byte
+	binary.LittleEndian.PutUint32(header[0:4], uint32(ds.DataType()))
+	binary.LittleEndian.PutUint32(header[4:8], uint32(verts))
+	binary.LittleEndian.PutUint32(header[8:12], uint32(resY))
+	binary.LittleEndian.PutUint32(header[12:16], uint32(resX))
+	if _, err := w.Write(header[:]); err != nil {
+		log.Logf(backend_error, err)
+		return err
 	}
 
-	return res, ds.WriteAll(w, dataset.NW_ORIGIN)
+	return ds.WriteAll(w, dataset.NW_ORIGIN)
 }

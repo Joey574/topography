@@ -6,23 +6,19 @@ import (
 	"text/template"
 	"topography/v2/internal/backend"
 	"topography/v2/internal/log"
-
-	"golang.org/x/time/rate"
 )
 
 type Server struct {
 	Handler http.Handler
 	tmpl    *template.Template
-	limiter *rate.Limiter
 }
 
 func NewServer(fs embed.FS, d *backend.Backend) *Server {
 	s := &Server{}
 	s.tmpl = template.Must(template.ParseFS(fs, "min/html/*.html"))
-	s.limiter = rate.NewLimiter(15, 30)
 	s.setHandlers(fs, d)
 
-	log.FLog(initialize_log)
+	log.Logf(initialize_log)
 	return s
 }
 
@@ -47,17 +43,7 @@ func (s *Server) headerHandler(next http.Handler) http.Handler {
 // Log incoming requests
 func (s *Server) loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.FLog(request_log, r.RemoteAddr, r.URL.Path, r.Method)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (s *Server) rateLimitHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
+		log.Logf(request_log, r.RemoteAddr, r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -66,7 +52,7 @@ func (s *Server) recoveryHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.FLog(server_error, err)
+				log.Logf(server_error, err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
@@ -106,7 +92,6 @@ func (s *Server) setHandlers(fs embed.FS, d *backend.Backend) {
 
 	// wrappers, recall the last wrapper applied will be the first one called
 	handler := s.wrapCSRF(mux)
-	handler = s.rateLimitHandler(handler)
 	handler = s.headerHandler(handler)
 	handler = s.loggingHandler(handler)
 	handler = s.recoveryHandler(handler)

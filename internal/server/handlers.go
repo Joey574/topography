@@ -9,7 +9,7 @@ import (
 func (s *Server) templateHandler(path string, data any) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := s.tmpl.ExecuteTemplate(w, path, data); err != nil {
-			log.FLog(server_error, err)
+			log.Logf(server_error, err)
 		}
 	}
 }

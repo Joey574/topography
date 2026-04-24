@@ -23,18 +23,18 @@ func Render(
 ) {
 	err := os.MkdirAll(dir, 0744)
 	if err != nil {
-		log.FLog(render_error, err)
+		log.Logf(render_error, err)
 		return
 	}
 
-	log.FLog(initialize_log)
+	log.Logf(initialize_log)
 	scene := pt.Scene{}
 
 	buf := bytes.NewBuffer(make([]byte, 0, ds.Size()))
 
 	err = ds.Write(buf, dataset.SW_ORIGIN, uint(resolution))
 	if err != nil {
-		log.FLog(render_error, err)
+		log.Logf(render_error, err)
 		return
 	}
 
@@ -85,6 +85,6 @@ func Render(
 	renderer.Verbose = false
 	renderer.NumCPU = cores
 
-	log.FLog(start_log)
+	log.Logf(start_log)
 	renderer.IterativeRender(dir+"out_%03d.png", iterations)
 }

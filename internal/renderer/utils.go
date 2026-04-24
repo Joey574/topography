@@ -16,7 +16,7 @@ const (
 )
 
 func normalize(xs []byte, t dataset.DataType, a, b float32) {
-	log.FLog(normalize_log, t)
+	log.Logf(normalize_log, t)
 
 	switch t {
 	case dataset.FLOAT_32:
@@ -24,7 +24,7 @@ func normalize(xs []byte, t dataset.DataType, a, b float32) {
 	case dataset.FLOAT_16:
 		normalizef16(unsafe.Slice((*float16.Float16)(unsafe.Pointer(&xs[0])), len(xs)/2), a, b)
 	default:
-		log.FLog(render_error, "unrecognized data type!")
+		log.Logf(render_error, "unrecognized data type!")
 	}
 }
 
@@ -36,7 +36,7 @@ func normalizef32(xs []float32, a, b float32) {
 		v := xs[i]
 
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			log.FLog(render_error, "nan / inf value encountered")
+			log.Logf(render_error, "nan / inf value encountered")
 			continue
 		}
 
@@ -56,7 +56,7 @@ func normalizef32(xs []float32, a, b float32) {
 		v := xs[i]
 
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			log.FLog(render_error, "nan / inf value encountered")
+			log.Logf(render_error, "nan / inf value encountered")
 			continue
 		}
 
@@ -73,7 +73,7 @@ func normalizef16(xs []float16.Float16, a, b float32) {
 		v := xs[i].Float32()
 
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			log.FLog(render_error, "nan / inf value encountered")
+			log.Logf(render_error, "nan / inf value encountered")
 			continue
 		}
 
@@ -93,7 +93,7 @@ func normalizef16(xs []float16.Float16, a, b float32) {
 		v := xs[i].Float32()
 
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			log.FLog(render_error, "nan / inf value encountered")
+			log.Logf(render_error, "nan / inf value encountered")
 			continue
 		}
 

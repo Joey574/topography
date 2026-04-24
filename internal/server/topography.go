@@ -40,10 +40,10 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 		w.Header().Set("Cache-Control", "public, max-age=3600, immutable")
 		w.Header().Set("ETag", generateETag(req))
 
-		log.FLog(topography_log, req.Resolution)
+		log.Logf(topography_log, req.Resolution)
 
-		if _, err := d.GenerateResponse(req, true, w); err != nil {
-			log.FLog(server_error, err)
+		if err = d.HandleRequest(req, w); err != nil {
+			log.Logf(server_error, err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

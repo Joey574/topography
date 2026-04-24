@@ -1,11 +1,9 @@
 package backend
 
 const (
-	initialize_log = "[i] [DATASET] Initialized Dataset: in_memory='%t', downsampled='%t'"
+	initialize_log = "[i] [BACKEND] Initialized Backend: backend='%s' versions='%d'"
+	request_log    = "[i] [BACKEND] Recieved Request: resolution='%d''"
+	served_log     = "[i] [BACKEND] Served Request: time='%v'"
 
-	request_log    = "[i] [DATASET] Recieved Request: resolution='%d''"
-	served_log     = "[i] [DATASET] Served Request: time='%v'"
-	downsample_log = "[i] [DATASET] Downsampling: resolutionX='%d', resolutionY='%d'"
-
-	dataset_error = "[!] [DATASET] %w"
+	backend_error = "[!] [BACKEND] %w"
 )
