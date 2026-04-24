@@ -62,6 +62,18 @@ func (s *Server) rateLimitHandler(next http.Handler) http.Handler {
 	})
 }
 
+func (s *Server) recoveryHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.FLog(server_error, err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 // Returns a http.Handler packaged with all the handlers and security protections
 func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux := http.NewServeMux()
@@ -70,7 +82,7 @@ func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	indexData := map[string]int{"MIN_RESOLUTION": dataset.MIN_ONLINE_RESOLUTION, "MAX_RESOLUTION": dataset.MAX_ONLINE_RESOLUTION}
 	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData))
 	mux.Handle("GET /health_check", s.HealthCheck(d))
-	mux.Handle("POST /topography", s.TopographyHandler(d))
+	mux.Handle("GET /topography", s.TopographyHandler(d))
 	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js"))
 	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css"))
 
@@ -88,10 +100,11 @@ func (s *Server) setHandlers(fs embed.FS, d *dataset.Dataset) {
 	mux.Handle("GET /cookies", s.templateHandler("cookies.html", nil))
 	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", nil))
 
-	// wrappers
-	handler := s.headerHandler(mux)
-	handler = s.wrapCSRF(handler)
+	// wrappers, recall the last wrapper applied will be the first one called
+	handler := s.wrapCSRF(mux)
 	handler = s.rateLimitHandler(handler)
+	handler = s.headerHandler(handler)
 	handler = s.loggingHandler(handler)
+	handler = s.recoveryHandler(handler)
 	s.Handler = handler
 }

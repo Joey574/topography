@@ -356,11 +356,8 @@ async function fetchTopographyData() {
       break fetch;
     }
 
-    const requestData = {resolution: settings.resolution};
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData)
+    const response = await fetch(`${url}?res=${encodeURIComponent(settings.resolution)}`, {
+      method: 'GET'
     });
 
     if (!response.ok) {
