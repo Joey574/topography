@@ -1,5 +1,4 @@
-FROM ghcr.io/osgeo/gdal:alpine-small-3.12.2 AS builder
-
+FROM ghcr.io/osgeo/gdal:alpine-small-latest AS builder
 RUN apk add --no-cache go gcc musl-dev pkgconfig coreutils
 WORKDIR /app
 
@@ -14,7 +13,7 @@ COPY main.go .
 
 RUN ./scripts/build.sh
 
-FROM ghcr.io/osgeo/gdal:alpine-small-3.12.2
+FROM ghcr.io/osgeo/gdal:alpine-small-latest
 WORKDIR /app
 
 COPY --from=builder /app/bin/topography /usr/local/bin/topography
