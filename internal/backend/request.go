@@ -5,6 +5,6 @@ import (
 )
 
 type Request struct {
-	Resolution int            `json:"resolution"`
+	Resolution uint           `json:"resolution"`
 	Origin     dataset.Origin `json:"-"`
 }

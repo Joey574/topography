@@ -1,5 +1,5 @@
 FROM ghcr.io/osgeo/gdal:alpine-small-latest AS builder
-RUN apk add --no-cache go gcc musl-dev pkgconfig coreutils
+RUN apk add --no-cache go gcc musl-dev pkgconfig coreutils libseccomp-dev
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -14,7 +14,9 @@ COPY main.go .
 RUN ./scripts/build.sh
 
 FROM ghcr.io/osgeo/gdal:alpine-small-latest
-WORKDIR /app
+RUN apk add libseccomp-dev
 
 COPY --from=builder /app/bin/topography /usr/local/bin/topography
+
+USER 1000:1000
 ENTRYPOINT ["topography", "--server"]

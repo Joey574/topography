@@ -1,4 +1,6 @@
 #!/bin/sh
+
+rm -rf ./min
 mkdir -p ./min
 cp -r ./src/* ./min
 if command -v minify >/dev/null 2>&1; then

@@ -90,6 +90,16 @@ func run() {
 	}
 
 	if args.Server {
+		bytes, err := fs.ReadFile("min/security/seccomp.txt")
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = server.SetSeccompFilters(strings.Split(string(bytes), ","))
+		if err != nil {
+			log.Fatalln(err)
+		}
+
 		bck, err := backend.NewBackend(ds)
 		if err != nil {
 			log.Fatalln(err)
@@ -97,9 +107,7 @@ func run() {
 
 		h := server.NewServer(fs, bck)
 		http.ListenAndServe("0.0.0.0:8080", h.Handler)
-	}
-
-	if args.Render {
+	} else if args.Render {
 		if args.Cores == -1 {
 			// TODO : get number of cores, runtime.NumCPU()
 			// keeps returning 2 instead of core count :/

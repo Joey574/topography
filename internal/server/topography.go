@@ -31,17 +31,15 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 
 		// basic request outline
 		req := &backend.Request{
-			Resolution: int(res),
+			Resolution: uint(res),
 			Origin:     dataset.NW_ORIGIN,
 		}
 
-		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", "public, max-age=3600, immutable")
 		w.Header().Set("ETag", generateETag(req))
 
 		log.Logf(topography_log, req.Resolution)
-
 		if err = d.HandleRequest(req, w); err != nil {
 			log.Logf(server_error, err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -9,22 +9,24 @@ import (
 	"topography/v2/internal/log"
 )
 
+func logResponse(res uint, start time.Time) {
+	log.Logf(served_log, res, time.Since(start))
+}
+
 func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 	log.Logf(request_log, req.Resolution)
-	defer func(start time.Time) {
-		log.Logf(served_log, time.Since(start))
-	}(time.Now())
+	defer logResponse(req.Resolution, time.Now())
 
 	idx := (req.Resolution / STEP_VALUE) - 1
 	ds := d.ds[idx]
-	if req.Resolution != int(ds.RasterX()) {
+	if req.Resolution != ds.RasterX() {
 		err := fmt.Errorf("expected resolution '%d', got '%d'", ds.RasterX(), req.Resolution)
 		log.Logf(backend_error, err)
 		return err
 	}
 
 	resX := req.Resolution
-	resY := int(float64(req.Resolution) / ds.AspectRatio())
+	resY := uint(float64(req.Resolution) / ds.AspectRatio())
 	verts := resX * resY
 
 	var header [16]byte
