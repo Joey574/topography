@@ -6,5 +6,5 @@ const (
 	request_log    = "[i] [SERVER] Recieved Request: ip='%s', path='%s' method='%s'"
 	topography_log = "[i] [SERVER] Requesting Topography: resolution='%d'"
 
-	server_error = "[!] [SERVER] %w"
+	server_error = "[!] [SERVER] %v"
 )

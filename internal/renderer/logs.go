@@ -5,5 +5,5 @@ const (
 	normalize_log  = "[i] [RENDER] Normalizing %s Dataset"
 	start_log      = "[i] [RENDER] Starting IterativeRender..."
 
-	render_error = "[!] [RENDER] %w"
+	render_error = "[!] [RENDER] %v"
 )

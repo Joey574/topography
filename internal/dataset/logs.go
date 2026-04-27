@@ -1,5 +1,5 @@
 package dataset
 
 const (
-	dataset_error = "[!] [DATASET] [%s] %w"
+	dataset_error = "[!] [DATASET] [%s] %v"
 )

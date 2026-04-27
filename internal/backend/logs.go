@@ -5,5 +5,5 @@ const (
 	request_log    = "[i] [BACKEND] Recieved Request: resolution='%d'"
 	served_log     = "[i] [BACKEND] Served Request: resolution='%d', time='%v'"
 
-	backend_error = "[!] [BACKEND] %w"
+	backend_error = "[!] [BACKEND] %v"
 )
