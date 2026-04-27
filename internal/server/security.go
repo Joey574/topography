@@ -44,8 +44,8 @@ func SetSeccompFilters(syscalls []string) error {
 }
 
 func SetLandlockFilters(port uint16) error {
-	landlock.V8.RestrictScoped()
-	return landlock.V8.Restrict(
+	landlock.V8.BestEffort().RestrictScoped()
+	return landlock.V8.BestEffort().Restrict(
 		landlock.BindTCP(port),
 	)
 }
