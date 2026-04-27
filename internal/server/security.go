@@ -3,6 +3,7 @@ package server
 import (
 	"sync"
 
+	"github.com/landlock-lsm/go-landlock/landlock"
 	seccomp "github.com/seccomp/libseccomp-golang"
 )
 
@@ -40,4 +41,11 @@ func SetSeccompFilters(syscalls []string) error {
 	})
 
 	return e
+}
+
+func SetLandlockFilters(port uint16) error {
+	landlock.V8.RestrictScoped()
+	return landlock.V8.Restrict(
+		landlock.BindTCP(port),
+	)
 }

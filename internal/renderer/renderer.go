@@ -21,7 +21,7 @@ func Render(
 	cores int,
 	dir string,
 ) {
-	err := os.MkdirAll(dir, 0744)
+	err := os.MkdirAll(dir, 0750)
 	if err != nil {
 		log.Logf(render_error, err)
 		return
@@ -38,7 +38,9 @@ func Render(
 		log.Logf(render_error, err)
 		return
 	}
-	ds.Close()
+
+	// an error here is non-fatal
+	_ = ds.Close()
 
 	data := buf.Bytes()
 	dtype := ds.DataType()

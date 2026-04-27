@@ -3,10 +3,8 @@ package main
 import (
 	"embed"
 	"log"
-	"net/http"
 	"os"
 	"strings"
-	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	logger "topography/v2/internal/log"
 	"topography/v2/internal/renderer"
@@ -24,8 +22,15 @@ type Args struct {
 
 	Server bool `long:"server"`
 	Render bool `long:"render"`
-	Disk   bool `long:"disk"`
 
+	// Universal Args
+	Disk bool `long:"disk"`
+
+	// Server Args
+	Port      uint16 `short:"p" long:"port" default:"8080"`
+	NoSandbox bool   `long:"no-sandbox"`
+
+	// Render Args
 	Samples    int     `short:"s" long:"samples" default:"16384"`
 	Iterations int     `short:"i" long:"iterations" default:"100"`
 	Width      int     `long:"width" default:"800"`
@@ -56,7 +61,7 @@ func run() {
 	}
 
 	if args.Log != "" {
-		f, err := os.OpenFile(args.Log, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(args.Log, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -90,23 +95,10 @@ func run() {
 	}
 
 	if args.Server {
-		bytes, err := fs.ReadFile("min/security/seccomp.txt")
+		err = server.StartServer(fs, ds, !args.NoSandbox, "0.0.0.0", args.Port)
 		if err != nil {
 			log.Fatalln(err)
 		}
-
-		err = server.SetSeccompFilters(strings.Split(string(bytes), ","))
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		bck, err := backend.NewBackend(ds)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		h := server.NewServer(fs, bck)
-		http.ListenAndServe("0.0.0.0:8080", h.Handler)
 	} else if args.Render {
 		if args.Cores == -1 {
 			// TODO : get number of cores, runtime.NumCPU()

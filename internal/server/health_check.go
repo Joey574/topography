@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"topography/v2/internal/backend"
+	"topography/v2/internal/log"
 )
 
 func (s *Server) HealthCheck(d *backend.Backend) http.HandlerFunc {
@@ -33,11 +34,16 @@ func (s *Server) HealthCheck(d *backend.Backend) http.HandlerFunc {
 
 		bytes, err := json.Marshal(locs)
 		if err != nil {
+			log.Logf(server_error, err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(bytes)
+		if _, err := w.Write(bytes); err != nil {
+			log.Logf(server_error, err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 }

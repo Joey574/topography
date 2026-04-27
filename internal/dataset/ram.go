@@ -112,7 +112,8 @@ func (ram *RAMDataset) LoadStatic(r io.Reader) error {
 		return err
 	}
 
-	os.Remove(path)
+	// an error here is non-fatal as it's a temp file and will be cleaned by the OS eventually anyways
+	_ = os.Remove(path)
 	return nil
 }
 
@@ -176,13 +177,13 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 		return ram.WriteAll(w, origin)
 	}
 
-	rx := int(ram.metaData.RasterX)
-	ry := int(ram.metaData.RasterY)
+	rx := ram.metaData.RasterX
+	ry := ram.metaData.RasterY
 	ar := ram.metaData.AspectRatio
-	bpp := int(ram.metaData.DataType.Bytes())
+	bpp := uint(ram.metaData.DataType.Bytes())
 
-	sx := 0
-	sy := 0
+	sx := uint(0)
+	sy := uint(0)
 	incx := float64(rx) / float64(samples)
 	incy := float64(ry) * ar / float64(samples)
 	samplesY := uint(float64(samples) / ar)
@@ -202,7 +203,7 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 		x := float64(sx)
 
 		for range samples {
-			idx := (int(y)*rx + int(x)) * bpp
+			idx := (uint(y)*rx + uint(x)) * bpp
 			if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
 				return err
 			}

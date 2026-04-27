@@ -2,66 +2,80 @@ package server
 
 import (
 	"embed"
+	"fmt"
 	"net/http"
+	"strings"
 	"text/template"
+	"time"
 	"topography/v2/internal/backend"
+	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 )
 
 type Server struct {
-	Handler http.Handler
-	tmpl    *template.Template
+	srv  *http.Server
+	tmpl *template.Template
 }
 
-func NewServer(fs embed.FS, d *backend.Backend) *Server {
+const seccompFile = "min/security/seccomp.txt"
+
+func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, port uint16) error {
+
+	bck, err := backend.NewBackend(ds)
+	if err != nil {
+		return err
+	}
+
+	h, err := NewServer(fs, bck, fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		return err
+	}
+
+	if sandbox {
+		// ensure landlock is ran first as to prevent the need of additional syscalls
+		if err = SetLandlockFilters(port); err != nil {
+			return err
+		}
+
+		bytes, err := fs.ReadFile(seccompFile)
+		if err != nil {
+			return err
+		}
+
+		if err = SetSeccompFilters(strings.Split(string(bytes), ",")); err != nil {
+			return err
+		}
+
+	}
+
+	return h.srv.ListenAndServe()
+}
+
+func NewServer(fs embed.FS, d *backend.Backend, addr string) (*Server, error) {
 	s := &Server{}
 	s.tmpl = template.Must(template.ParseFS(fs, "min/html/*.html"))
-	s.setHandlers(fs, d)
+	h, err := s.handler(fs, d)
+	if err != nil {
+		return nil, err
+	}
+
+	s.srv = &http.Server{
+		Handler: h,
+		Addr:    addr,
+
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
 
 	log.Logf(initialize_log)
-	return s
-}
-
-// Apply CSRF protections
-func (s *Server) wrapCSRF(next http.Handler) http.Handler {
-	csrf := http.NewCrossOriginProtection()
-	csrf.AddTrustedOrigin("http://localhost:8080")
-	csrf.AddTrustedOrigin("https://topoview.org")
-	return csrf.Handler(next)
-}
-
-// Add some security headers
-func (s *Server) headerHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Strict-Transport-Security", "max-age=63072000;")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		next.ServeHTTP(w, r)
-	})
-}
-
-// Log incoming requests
-func (s *Server) loggingHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Logf(request_log, r.RemoteAddr, r.URL.Path, r.Method)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (s *Server) recoveryHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Logf(server_error, err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
+	return s, err
 }
 
 // Returns a http.Handler packaged with all the handlers and security protections
-func (s *Server) setHandlers(fs embed.FS, d *backend.Backend) {
+func (s *Server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) {
 	indexData := map[string]int{
 		"STEP_VALUE":     backend.STEP_VALUE,
 		"MIN_RESOLUTION": backend.MIN_RESOLUTION,
@@ -91,9 +105,14 @@ func (s *Server) setHandlers(fs embed.FS, d *backend.Backend) {
 	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", nil))
 
 	// wrappers, recall the last wrapper applied will be the first one called
-	handler := s.wrapCSRF(mux)
-	handler = s.headerHandler(handler)
-	handler = s.loggingHandler(handler)
-	handler = s.recoveryHandler(handler)
-	s.Handler = handler
+	handler, err := csrfHandler(mux)
+	if err != nil {
+		return nil, err
+	}
+
+	handler = headerHandler(handler)
+	handler = timeoutHandler(handler)
+	handler = loggingHandler(handler)
+	handler = recoveryHandler(handler)
+	return handler, nil
 }
