@@ -1,7 +1,10 @@
 package server
 
 import (
+	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 	"topography/v2/internal/log"
 )
@@ -31,7 +34,24 @@ func headerHandler(next http.Handler) http.Handler {
 // Log incoming requests
 func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Logf(request_log, r.RemoteAddr, r.URL.Path, r.Method)
+		remoteAddr := strings.Split(r.RemoteAddr, ":")
+		if len(remoteAddr) != 2 {
+			log.Logf(server_error, fmt.Errorf("%s is invalid for expected ip:port format"), r.RemoteAddr)
+			return
+		}
+
+		remoteIp := remoteAddr[0]
+		remotePort := remoteAddr[1]
+
+		if net.ParseIP(remoteIp).IsPrivate() {
+			// attempt to pull cloudflare data from headers, if we fail, we just leave it as the private ip
+			nip := net.ParseIP(r.Header.Get("CF-Connecting-IP"))
+			if nip != nil {
+				remoteIp = nip.String()
+			}
+		}
+
+		log.Logf(request_log, fmt.Sprintf("%s:%s", remoteIp, remotePort), r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }
