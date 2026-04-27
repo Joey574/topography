@@ -41,6 +41,7 @@ type Dataset interface {
 
 	Copy() Dataset
 
+	// TODO : streaming should happen in chunks set to target L2/L3 cache
 	WriteAll(w io.Writer, origin Origin) error
 	Write(w io.Writer, origin Origin, samples uint) error
 	PartialWrite(w io.Writer, origin Origin, samples uint) error
