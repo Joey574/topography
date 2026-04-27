@@ -14,9 +14,9 @@ COPY main.go .
 RUN ./scripts/build.sh
 
 FROM ghcr.io/osgeo/gdal:alpine-small-latest
-RUN apk add --no-cache libseccomp-dev
+RUN apk add --no-cache libseccomp
 
-COPY --from=builder /app/bin/topography /usr/local/bin/topography
+COPY --from=builder --chown=1000:1000 /app/bin/topography /usr/local/bin/topography
 
 USER 1000:1000
 ENTRYPOINT ["topography", "--server"]
