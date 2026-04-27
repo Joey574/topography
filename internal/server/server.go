@@ -33,9 +33,7 @@ func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, por
 
 	if sandbox {
 		// ensure landlock is ran first as to prevent the need of additional syscalls
-		if err = SetLandlockFilters(port); err != nil {
-			return err
-		}
+		SetLandlockFilters(port)
 
 		bytes, err := fs.ReadFile(seccompFile)
 		if err != nil {
@@ -84,25 +82,25 @@ func (s *Server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) 
 
 	// main functionality
 	mux := http.NewServeMux()
-	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData))
+	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData, HTML_CACHE))
 	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("GET /topography", s.TopographyHandler(d))
-	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js"))
-	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css"))
+	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js", STATIC_CACHE))
+	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css", STATIC_CACHE))
 
 	// utility
-	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt"))
-	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt"))
-	mux.Handle("GET /sitemap.xml", s.defaultHandler(fs, "min/misc/sitemap.xml"))
-	mux.Handle("GET /favicon.ico", s.defaultHandler(fs, "min/misc/favicon.svg"))
-	mux.Handle("GET /about", s.templateHandler("about.html", nil))
-	mux.Handle("GET /contact", s.templateHandler("contact.html", nil))
+	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt", DEFAULT_CACHE))
+	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt", DEFAULT_CACHE))
+	mux.Handle("GET /sitemap.xml", s.defaultHandler(fs, "min/misc/sitemap.xml", DEFAULT_CACHE))
+	mux.Handle("GET /favicon.ico", s.defaultHandler(fs, "min/misc/favicon.svg", DEFAULT_CACHE))
+	mux.Handle("GET /about", s.templateHandler("about.html", nil, HTML_CACHE))
+	mux.Handle("GET /contact", s.templateHandler("contact.html", nil, HTML_CACHE))
 
 	// legal
-	mux.Handle("GET /tos", s.templateHandler("tos.html", nil))
-	mux.Handle("GET /privacy", s.templateHandler("privacy.html", nil))
-	mux.Handle("GET /cookies", s.templateHandler("cookies.html", nil))
-	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", nil))
+	mux.Handle("GET /tos", s.templateHandler("tos.html", nil, HTML_CACHE))
+	mux.Handle("GET /privacy", s.templateHandler("privacy.html", nil, HTML_CACHE))
+	mux.Handle("GET /cookies", s.templateHandler("cookies.html", nil, HTML_CACHE))
+	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", nil, HTML_CACHE))
 
 	// wrappers, recall the last wrapper applied will be the first one called
 	handler, err := csrfHandler(mux)

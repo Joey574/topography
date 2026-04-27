@@ -36,7 +36,7 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Cache-Control", "public, max-age=3600, immutable")
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", TOPO_CACHE))
 		w.Header().Set("ETag", generateETag(req))
 
 		log.Logf(topography_log, req.Resolution)
