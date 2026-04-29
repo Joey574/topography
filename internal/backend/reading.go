@@ -46,7 +46,7 @@ func (d *Backend) At(w io.Writer, origin dataset.Origin, lat, lon float64) error
 	if d.ds == nil {
 		return fmt.Errorf("dataset is not initialized")
 	}
-
+	defer logResponse(1, time.Now())
 	return d.ds[len(d.ds)-1].At(w, origin, lat, lon)
 }
 

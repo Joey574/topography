@@ -1,8 +1,6 @@
 package server
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -25,6 +23,12 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 			res > backend.MAX_RESOLUTION ||
 			res < backend.MIN_RESOLUTION ||
 			res%backend.STEP_VALUE != 0 {
+
+			if err != nil {
+				log.Logf(server_error, err)
+			} else {
+				log.Logf(server_error, fmt.Errorf("bad resolution %d", res))
+			}
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -37,7 +41,6 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", TOPO_CACHE))
-		w.Header().Set("ETag", generateETag(req))
 
 		log.Logf(topography_log, req.Resolution)
 		if err = d.HandleRequest(req, w); err != nil {
@@ -46,12 +49,4 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 			return
 		}
 	}
-}
-
-func generateETag(req *backend.Request) string {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(req.Resolution))
-
-	h := sha256.Sum256(buf)
-	return fmt.Sprintf(`"%x"`, h)
 }
