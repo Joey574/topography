@@ -7,16 +7,41 @@ import (
 	"path/filepath"
 	"topography/v2/internal/log"
 
+	"github.com/jaypipes/ghw"
 	gdal "github.com/seerai/godal"
 )
 
 type RAMDataset struct {
 	metaData Metadata
 	data     []byte
+
+	l3_size uint64
 }
 
 func NewRAMBackend() *RAMDataset {
-	return &RAMDataset{}
+	ram := &RAMDataset{
+		l3_size: 128 * 1024,
+	}
+
+	topo, err := ghw.Topology()
+	if err == nil {
+		l3 := uint64(0)
+		nodes := topo.Nodes
+
+		for _, n := range nodes {
+			for _, c := range n.Caches {
+				if c.Level == 3 {
+					l3 += c.SizeBytes
+				}
+			}
+		}
+
+		if l3 > ram.l3_size {
+			ram.l3_size = l3
+		}
+	}
+
+	return ram
 }
 
 func (ram *RAMDataset) Name() string {
@@ -174,6 +199,7 @@ func (ram *RAMDataset) Copy() Dataset {
 	return &RAMDataset{
 		metaData: ram.metaData,
 		data:     data,
+		l3_size:  ram.l3_size,
 	}
 }
 
@@ -251,8 +277,16 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 	yflipped := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
 
 	if !xflipped && !yflipped {
-		_, err := w.Write(ram.data)
-		return err
+		bytes := ram.Size()
+		block := uint(ram.l3_size)
+
+		for i := uint(0); i < bytes; i += block {
+			if _, err := w.Write(ram.data[i:min(i+block, bytes)]); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	} else if xflipped && !yflipped {
 		// TODO
 		return nil
