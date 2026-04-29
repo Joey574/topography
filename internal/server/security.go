@@ -45,6 +45,7 @@ func SetSeccompFilters(syscalls []string) error {
 }
 
 func SetLandlockFilters(port uint16) {
+	// at this point dataset is already loaded and tmp dir access is unnesecary
 	rule := landlock.CompositeRule(
 		landlock.RODirs(),
 		landlock.RWDirs(),
@@ -53,11 +54,15 @@ func SetLandlockFilters(port uint16) {
 
 	if err := landlock.V8.RestrictScoped(); err != nil {
 		log.Logf(server_error, err)
-		landlock.V8.BestEffort().RestrictScoped()
+		if err = landlock.V8.BestEffort().RestrictScoped(); err != nil {
+			log.Logf(server_error, err)
+		}
 	}
 
 	if err := landlock.V8.Restrict(rule); err != nil {
 		log.Logf(server_error, err)
-		landlock.V8.BestEffort().Restrict(rule)
+		if err = landlock.V8.BestEffort().Restrict(rule); err != nil {
+			log.Logf(server_error, err)
+		}
 	}
 }
