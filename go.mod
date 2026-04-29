@@ -17,7 +17,6 @@ require (
 
 require (
 	github.com/stretchr/testify v1.10.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
 )
-
-require golang.org/x/sys v0.43.0 // indirect; indirec
