@@ -39,5 +39,17 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 		return err
 	}
 
-	return ds.WriteAll(w, dataset.NW_ORIGIN)
+	return ds.Write(w, dataset.NW_ORIGIN, resX)
+}
+
+func (d *Backend) At(w io.Writer, origin dataset.Origin, lat, lon float64) error {
+	if d.ds == nil {
+		return fmt.Errorf("dataset is not initialized")
+	}
+
+	return d.ds[len(d.ds)-1].At(w, origin, lat, lon)
+}
+
+func (d *Backend) DataType() dataset.DataType {
+	return d.ds[0].DataType()
 }

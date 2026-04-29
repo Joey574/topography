@@ -135,9 +135,17 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 	}
 
 	ram.data = buf.Bytes()
+	ram.metaData.GeoTransform = scaleGeoTransform(
+		ram.metaData.GeoTransform,
+		ram.metaData.RasterX,
+		ram.metaData.RasterY,
+		newRasterX,
+		newRasterY,
+	)
+
+	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
 	ram.metaData.RasterX = newRasterX
 	ram.metaData.RasterY = newRasterY
-	// TODO : update geo transform
 	return nil
 }
 
@@ -174,7 +182,7 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	// special case is included as this is assumed
 	// to be the most common case
 	if ram.metaData.RasterX == samples {
-		return ram.WriteAll(w, origin)
+		return ram.writeAll(w, origin)
 	}
 
 	rx := ram.metaData.RasterX
@@ -215,11 +223,30 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	return nil
 }
 
-func (ram *RAMDataset) PartialWrite(w io.Writer, origin Origin, samples uint) error {
-	return nil // TODO
+func (ram *RAMDataset) At(w io.Writer, origin Origin, lat, lon float64) error {
+	xflip := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
+	yflip := ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS)
+
+	if xflip {
+		lat = -lat
+	}
+
+	if yflip {
+		lon = -lon
+	}
+
+	px, py := toPixel(lat, lon, ram.metaData.InvGeoTransform)
+	px = min(px, ram.metaData.RasterX-1)
+	py = min(py, ram.metaData.RasterY-1)
+
+	bpp := uint(ram.metaData.DataType.Bytes())
+	idx := (py*ram.metaData.RasterX + px) * bpp
+
+	_, err := w.Write(ram.data[idx : idx+bpp])
+	return err
 }
 
-func (ram *RAMDataset) WriteAll(w io.Writer, origin Origin) error {
+func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 	xflipped := ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS)
 	yflipped := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
 

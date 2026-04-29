@@ -5,12 +5,14 @@ import (
 )
 
 type Metadata struct {
-	RasterX      uint
-	RasterY      uint
-	AspectRatio  float64
-	DataType     DataType
-	Origin       Origin
-	GeoTransform [6]float64
+	RasterX     uint     `json:"RasterX"`
+	RasterY     uint     `json:"RasterY"`
+	AspectRatio float64  `json:"AspectRatio"`
+	DataType    DataType `json:"DataType"`
+	Origin      Origin   `json:"Origin"`
+
+	GeoTransform    [6]float64 `json:"GeoTransform"`
+	InvGeoTransform [6]float64 `json:"InvGeoTransform"`
 }
 
 type Dataset interface {
@@ -41,8 +43,6 @@ type Dataset interface {
 
 	Copy() Dataset
 
-	// TODO : streaming should happen in chunks set to target L2/L3 cache
-	WriteAll(w io.Writer, origin Origin) error
 	Write(w io.Writer, origin Origin, samples uint) error
-	PartialWrite(w io.Writer, origin Origin, samples uint) error
+	At(w io.Writer, origin Origin, lat, lon float64) error
 }

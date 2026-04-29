@@ -16,7 +16,7 @@ const (
 )
 
 func (o Origin) IsFlipped(other Origin, axis Axis) bool {
-	// handle self reference case, always false
+	// handle self case, always false
 	if other == o {
 		return false
 	}

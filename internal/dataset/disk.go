@@ -78,10 +78,6 @@ func (d *DiskDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	return nil // TODO
 }
 
-func (d *DiskDataset) PartialWrite(w io.Writer, origin Origin, samples uint) error {
-	return nil // TODO
-}
-
-func (d *DiskDataset) WriteAll(w io.Writer, origin Origin) error {
+func (d *DiskDataset) At(w io.Writer, origin Origin, lat, lon float64) error {
 	return nil // TODO
 }

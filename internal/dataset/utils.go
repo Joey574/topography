@@ -16,6 +16,7 @@ func parseMetaData(ds *gdal.Dataset) (Metadata, error) {
 	gt := ds.GeoTransform()
 
 	m.GeoTransform = gt
+	m.InvGeoTransform = gdal.InvGeoTransform(gt)
 	m.Origin = parseOrigin(gt)
 	return m, nil
 }
@@ -46,4 +47,24 @@ func parseOrigin(gt [6]float64) Origin {
 	}
 
 	panic("reached unreachable statement")
+}
+
+func toPixel(lat, lon float64, igt [6]float64) (uint, uint) {
+	fpx := igt[0] + lon*igt[1] + lat*igt[2]
+	fpy := igt[3] + lon*igt[4] + lat*igt[5]
+	return uint(max(fpx, 0)), uint(max(fpy, 0))
+}
+
+func scaleGeoTransform(ogt [6]float64, ox, oy, nx, ny uint) [6]float64 {
+	scaleX := float64(nx) / float64(ox)
+	scaleY := float64(ny) / float64(oy)
+
+	return [6]float64{
+		ogt[0],
+		ogt[1] / scaleX,
+		ogt[2] / scaleX,
+		ogt[3],
+		ogt[4] / scaleY,
+		ogt[5] / scaleY,
+	}
 }
