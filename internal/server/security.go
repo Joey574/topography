@@ -45,13 +45,19 @@ func SetSeccompFilters(syscalls []string) error {
 }
 
 func SetLandlockFilters(port uint16) {
+	rule := landlock.CompositeRule(
+		landlock.RODirs(),
+		landlock.RWDirs(),
+		landlock.BindTCP(port),
+	)
+
 	if err := landlock.V8.RestrictScoped(); err != nil {
 		log.Logf(server_error, err)
 		landlock.V8.BestEffort().RestrictScoped()
 	}
 
-	if err := landlock.V8.Restrict(landlock.BindTCP(port)); err != nil {
+	if err := landlock.V8.Restrict(rule); err != nil {
 		log.Logf(server_error, err)
-		landlock.V8.BestEffort().Restrict(landlock.BindTCP(port))
+		landlock.V8.BestEffort().Restrict(rule)
 	}
 }
