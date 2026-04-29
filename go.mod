@@ -1,6 +1,6 @@
 module topography/v2
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/jessevdk/go-flags v1.6.1
