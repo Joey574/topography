@@ -36,12 +36,14 @@ func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		remoteAddr := strings.Split(r.RemoteAddr, ":")
 		if len(remoteAddr) != 2 {
-			log.Logf(server_error, fmt.Errorf("%s is invalid for expected ip:port format"), r.RemoteAddr)
-			return
+			log.Logf(server_error, fmt.Errorf("%s is invalid for expected ip:port format", r.RemoteAddr))
+			// non-fatal server error, just log and continue
 		}
 
-		remoteIp := remoteAddr[0]
-		remotePort := remoteAddr[1]
+		remoteIp := "nil"
+		if remoteAddr != nil {
+			remoteIp = remoteAddr[0]
+		}
 
 		if net.ParseIP(remoteIp).IsPrivate() {
 			// attempt to pull cloudflare data from headers, if we fail, we just leave it as the private ip
@@ -51,7 +53,7 @@ func loggingHandler(next http.Handler) http.Handler {
 			}
 		}
 
-		log.Logf(request_log, fmt.Sprintf("%s:%s", remoteIp, remotePort), r.URL.Path, r.Method)
+		log.Logf(request_log, fmt.Sprintf("%s", remoteIp), r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }

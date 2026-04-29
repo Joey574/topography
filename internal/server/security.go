@@ -59,6 +59,5 @@ func SetLandlockFilters(port uint16) {
 	if err := landlock.V8.Restrict(rule); err != nil {
 		log.Logf(server_error, err)
 		landlock.V8.BestEffort().Restrict(rule)
-
 	}
 }
