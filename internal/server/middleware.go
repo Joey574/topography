@@ -31,7 +31,6 @@ func headerHandler(next http.Handler) http.Handler {
 	})
 }
 
-// Log incoming requests
 func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		remoteAddr := strings.Split(r.RemoteAddr, ":")
@@ -45,15 +44,12 @@ func loggingHandler(next http.Handler) http.Handler {
 			remoteIp = remoteAddr[0]
 		}
 
-		if net.ParseIP(remoteIp).IsPrivate() {
-			// attempt to pull cloudflare data from headers, if we fail, we just leave it as the private ip
-			nip := net.ParseIP(r.Header.Get("CF-Connecting-IP"))
-			if nip != nil {
-				remoteIp = nip.String()
-			}
+		if ip, country := r.Header.Get("Cf-Connecting-IP"), r.Header.Get("Cf-Ipcountry"); ip != "" && country != "" && net.ParseIP(ip).IsPrivate() {
+			log.Logf(cf_request_log, remoteIp, country, r.URL.Path, r.Method)
+		} else {
+			log.Logf(request_log, remoteIp, r.URL.Path, r.Method)
 		}
 
-		log.Logf(request_log, fmt.Sprintf("%s", remoteIp), r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }
