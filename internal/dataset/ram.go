@@ -276,10 +276,10 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 	xflipped := ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS)
 	yflipped := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
 
-	if !xflipped && !yflipped {
-		bytes := ram.Size()
-		block := uint(ram.l3_size)
+	bytes := ram.Size()
+	block := uint(ram.l3_size)
 
+	if !xflipped && !yflipped {
 		for i := uint(0); i < bytes; i += block {
 			if _, err := w.Write(ram.data[i:min(i+block, bytes)]); err != nil {
 				return err

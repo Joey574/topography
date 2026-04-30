@@ -21,7 +21,6 @@ func csrfHandler(next http.Handler) (http.Handler, error) {
 	return csrf.Handler(next), nil
 }
 
-// Add some security headers
 func headerHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Strict-Transport-Security", "max-age=63072000;")
@@ -35,22 +34,20 @@ func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		remoteAddr := strings.Split(r.RemoteAddr, ":")
 		if len(remoteAddr) != 2 {
+			// non-fatal server error, just log unexpected and continue
 			log.Logf(server_error, fmt.Errorf("%s is invalid for expected ip:port format", r.RemoteAddr))
-			// non-fatal server error, just log and continue
-		}
-
-		remoteIp := "nil"
-		if remoteAddr != nil {
-			remoteIp = remoteAddr[0]
-		}
-
-		if ip, country := r.Header.Get("Cf-Connecting-IP"), r.Header.Get("Cf-Ipcountry"); ip != "" && country != "" && net.ParseIP(remoteIp).IsPrivate() {
-			log.Logf(cf_request_log, remoteIp, country, r.URL.Path, r.Method)
+			next.ServeHTTP(w, r)
 		} else {
-			log.Logf(request_log, remoteIp, r.URL.Path, r.Method)
-		}
+			remoteIp := remoteAddr[0]
 
-		next.ServeHTTP(w, r)
+			if ip, cc := cfHeaders(r); net.ParseIP(remoteIp).IsPrivate() && ip != "" && cc != "" {
+				log.Logf(cf_request_log, ip, cc, r.URL.Path, r.Method)
+			} else {
+				log.Logf(request_log, remoteIp, r.URL.Path, r.Method)
+			}
+
+			next.ServeHTTP(w, r)
+		}
 	})
 }
 
@@ -68,4 +65,8 @@ func recoveryHandler(next http.Handler) http.Handler {
 
 func timeoutHandler(next http.Handler) http.Handler {
 	return http.TimeoutHandler(next, 30*time.Second, "Request Timeout")
+}
+
+func cfHeaders(r *http.Request) (string, string) {
+	return r.Header.Get("Cf-Connecting-IP"), r.Header.Get("Cf-Ipcountry")
 }

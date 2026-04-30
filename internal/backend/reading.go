@@ -39,7 +39,7 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 		return err
 	}
 
-	return ds.Write(w, dataset.NW_ORIGIN, resX)
+	return ds.Write(w, req.Origin, resX)
 }
 
 func (d *Backend) At(w io.Writer, origin dataset.Origin, lat, lon float64) error {
