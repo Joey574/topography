@@ -44,7 +44,7 @@ func loggingHandler(next http.Handler) http.Handler {
 			remoteIp = remoteAddr[0]
 		}
 
-		if ip, country := r.Header.Get("Cf-Connecting-IP"), r.Header.Get("Cf-Ipcountry"); ip != "" && country != "" && net.ParseIP(ip).IsPrivate() {
+		if ip, country := r.Header.Get("Cf-Connecting-IP"), r.Header.Get("Cf-Ipcountry"); ip != "" && country != "" && net.ParseIP(remoteIp).IsPrivate() {
 			log.Logf(cf_request_log, remoteIp, country, r.URL.Path, r.Method)
 		} else {
 			log.Logf(request_log, remoteIp, r.URL.Path, r.Method)
