@@ -36,7 +36,7 @@ func (s *Server) TopographyHandler(d *backend.Backend) http.HandlerFunc {
 		// basic request outline
 		req := &backend.Request{
 			Resolution: uint(res),
-			Origin:     dataset.NW_ORIGIN,
+			Origin:     dataset.SW_ORIGIN,
 		}
 
 		w.Header().Set("Content-Type", "application/octet-stream")

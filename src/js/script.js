@@ -95,7 +95,7 @@ function setupLighting() {
 }
 
 // ============================================================================
-// GEOMETRY CACHING SYSTEM
+// GEOMETRY & MATERIAL CACHING SYSTEM
 // ============================================================================
 
 function getOrCreateBaseGeometry(resolution) {
@@ -131,36 +131,51 @@ function getOrCreateMaterial(wireframe, color) {
 
   // Store uniforms here so we can update them globally without recompiling
   material.userData.uniforms = {
-    uDisplacementScale: { value: settings.displacementScale }
+    uDisplacementScale: { value: settings.displacementScale },
+    uDisplacementMap: { value: null },
+    uDataRange: { value: new THREE.Vector2(-1, 1) } // For GPU normalization
   };
 
   material.onBeforeCompile = (shader) => {
-  shader.uniforms.uDisplacementScale = material.userData.uniforms.uDisplacementScale;
+    shader.uniforms.uDisplacementScale = material.userData.uniforms.uDisplacementScale;
+    shader.uniforms.uDisplacementMap = material.userData.uniforms.uDisplacementMap;
+    shader.uniforms.uDataRange = material.userData.uniforms.uDataRange;
 
-  shader.vertexShader = `
-    attribute float displacement;
-    uniform float uDisplacementScale;
-    ${shader.vertexShader}
-  `;
+    shader.vertexShader = `
+      uniform float uDisplacementScale;
+      uniform sampler2D uDisplacementMap;
+      uniform vec2 uDataRange;
+      ${shader.vertexShader}
+    `;
 
-  shader.vertexShader = shader.vertexShader.replace(
-    '#include <begin_vertex>',
-    `
-    vec3 transformed = vec3(position);
-    transformed += normal * (displacement * uDisplacementScale);
-    `
-  );
+    // Replace attribute mapping with UV texture lookup and on-the-fly normalization
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      `
+      vec3 transformed = vec3(position);
+      
+      // Read raw displacement from the DataTexture
+      float rawDisp = texture2D(uDisplacementMap, uv).r;
+      
+      // Normalize on the GPU: (val - mean) / halfRange
+      float mean = (uDataRange.y + uDataRange.x) / 2.0;
+      float halfRange = (uDataRange.y - uDataRange.x) / 2.0;
+      float normalizedDisp = (halfRange == 0.0) ? 0.0 : (rawDisp - mean) / halfRange;
+      
+      transformed += normal * (normalizedDisp * uDisplacementScale);
+      `
+    );
 
-  shader.fragmentShader = shader.fragmentShader.replace(
-    '#include <normal_fragment_begin>',
-    `
-    vec3 fdx = dFdx(vViewPosition);
-    vec3 fdy = dFdy(vViewPosition);
-    vec3 normal = normalize(cross(fdx, fdy));
-    vec3 geometryNormal = normal;
-    `
-  );
-};
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <normal_fragment_begin>',
+      `
+      vec3 fdx = dFdx(vViewPosition);
+      vec3 fdy = dFdy(vViewPosition);
+      vec3 normal = normalize(cross(fdx, fdy));
+      vec3 geometryNormal = normal;
+      `
+    );
+  };
 
   materialCache.set(key, material);
   return material;
@@ -169,7 +184,6 @@ function getOrCreateMaterial(wireframe, color) {
 // ============================================================================
 // SPHERE CREATION
 // Geometry only changes here and when the resolution slider is manually moved.
-// Displacement is ONLY applied via the fetch button.
 // ============================================================================
 
 function createSphere(latResolution, lonResolution) {
@@ -182,13 +196,10 @@ function createSphere(latResolution, lonResolution) {
   }
 
   const material = getOrCreateMaterial(settings.wireframe, settings.color);
-
   sphere = new THREE.Group();
-  sphere.castShadow = true;
-  sphere.receiveShadow = true;
 
-  const MAX_VERTICES_PER_SEGMENT = 5000000;
-  const heightVertices = latResolution+1;
+  const MAX_VERTICES_PER_SEGMENT = 1000000; // Lowered slightly for better compatibility
+  const heightVertices = latResolution + 1;
   const maxWidthVertices = Math.floor(MAX_VERTICES_PER_SEGMENT / heightVertices) - 1;
   const segments = Math.max(1, Math.ceil(lonResolution / maxWidthVertices));
 
@@ -198,16 +209,26 @@ function createSphere(latResolution, lonResolution) {
 
     const geometry = new THREE.SphereGeometry(
       1,
-      lonResolution / segments,
+      Math.ceil(lonResolution / segments),
       latResolution,
       phi_start,
       phi_length
-    )
+    );
+
+    const uvAttribute = geometry.attributes.uv;
+    for (let j = 0; j < uvAttribute.count; j++) {
+      let u = uvAttribute.getX(j);
+      
+      let globalU = (i / segments) + (u / segments);
+      uvAttribute.setX(j, globalU);
+    }
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.userData.segmentIndex = i;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     sphere.add(mesh);
   }
+
   scene.add(sphere);
   settings.latResolution = latResolution;
   settings.lonResolution = lonResolution;
@@ -218,46 +239,8 @@ function createSphere(latResolution, lonResolution) {
   });
   updateStats(totalVertices);
 }
-
 // ============================================================================
-// DATA NORMALIZATION
-// ============================================================================
-
-function normalizeDisplacements(displacements) {
-  if (!displacements || displacements.length === 0) return displacements;
-
-  // Find min and max
-  let min = Infinity;
-  let max = -Infinity;
-  
-  for (let i = 0; i < displacements.length; i++) {
-    const val = displacements[i];
-    if (val < min) min = val;
-    if (val > max) max = val;
-  }
-
-  const range = max - min;
-  const normalized = new Float32Array(displacements.length);
-
-  if (range === 0) {
-    // Flat data - return zeros
-    console.warn('Displacement data has no variation (flat surface)');
-    return normalized;
-  }
-
-  // Normalize to [-1, 1] range centered at mean
-  const mean = (max + min) / 2;
-  const halfRange = range / 2;
-
-  for (let i = 0; i < displacements.length; i++) {
-    normalized[i] = (displacements[i] - mean) / halfRange;
-  }
-
-  return normalized;
-}
-
-// ============================================================================
-// DISPLACEMENT APPLICATION
+// DISPLACEMENT APPLICATION (GPU OPTIMIZED)
 // Only called explicitly after a successful backend fetch
 // ============================================================================
 
@@ -266,36 +249,49 @@ function applyBackendDisplacement(data) {
 
   isApplyingDisplacement = true;
 
-  const latResolution = data.latResolution;
-  const lonResolution = data.lonResolution;
+  const width = data.lonResolution + 1;
+  const height = data.latResolution + 1;
+  const displacements = data.displacements;
+
+  // 1. Find min/max for GPU normalization
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < displacements.length; i++) {
+    const v = displacements[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+
+  // 2. Determine texture type based on array type
+  const isFloat16 = typeof Float16Array !== 'undefined' && displacements instanceof Float16Array;
+  const type = isFloat16 ? THREE.HalfFloatType : THREE.FloatType;
+
+  const textureData = isFloat16 
+    ? new Uint16Array(displacements.buffer, displacements.byteOffset, displacements.length)
+    : displacements;
+
+  // 3. Create the DataTexture directly from the raw array
+  const texture = new THREE.DataTexture(
+    textureData,
+    width,
+    height,
+    THREE.RedFormat,
+    type
+  );
   
-  // Normalize the raw displacement data first
-  const normalizedDisplacements = normalizeDisplacements(data.displacements)
+  texture.needsUpdate = true;
+  texture.wrapS = THREE.RepeatWrapping; // Longitude wraps around
+  texture.wrapT = THREE.ClampToEdgeWrapping; // Latitude clamps at poles
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
 
-  const latDivisions = latResolution + 1;
-  const lonDivisions = lonResolution + 1;
-
-  sphere.children.forEach((mesh, segmentIndex) => {
-    const geometry = mesh.geometry;
-    const positions = geometry.attributes.position;
-    const displacementArray = new Float32Array(positions.count);
-
-    for (let i = 0; i < positions.count; i++) {
-      const x = positions.getX(i);
-      const y = positions.getY(i);
-      const z = positions.getZ(i);
-
-      const phi = Math.atan2(x, z);
-      const theta = Math.acos(Math.max(-1, Math.min(1, y)));
-
-      const latIndex = Math.round((theta / Math.PI) * latResolution);
-      const lonIndex = Math.round(((phi + Math.PI) / (Math.PI * 2)) * lonResolution) % lonDivisions;
-
-      const backendIndex = latIndex * lonDivisions + lonIndex;
-      displacementArray[i] = normalizedDisplacements[backendIndex] || 0;
+  // 4. Pass the texture and min/max limits to the materials globally
+  sphere.children.forEach(mesh => {
+    if (mesh.material.userData.uniforms) {
+      mesh.material.userData.uniforms.uDisplacementMap.value = texture;
+      mesh.material.userData.uniforms.uDataRange.value.set(min, max);
     }
-
-    geometry.setAttribute('displacement', new THREE.BufferAttribute(displacementArray, 1));
   });
 
   isApplyingDisplacement = false;
@@ -303,13 +299,13 @@ function applyBackendDisplacement(data) {
 
 /**
  * Reset sphere vertices to the original smooth sphere positions.
- * Called when displacement scale is changed but no backend data exists,
- * or when manually requested.
  */
 function resetToSmoothSphere() {
   if (!sphere) return;
   sphere.children.forEach(mesh => {
-    mesh.geometry.deleteAttribute('displacement');
+    if (mesh.material.userData.uniforms) {
+      mesh.material.userData.uniforms.uDisplacementMap.value = null;
+    }
   });
 }
 
@@ -344,13 +340,12 @@ function animate() {
 
 async function fetchTopographyData() {
   const btn = document.getElementById('fetch-btn');
-  const url = "/topography"
+  const url = "/topography";
 
   btn.disabled = true;
   btn.textContent = 'Loading…';
 
   fetch: try {
-    // ensure we only request when resolution has changed, sleep to give impression of work done
     if (backendData && backendData.resolution && settings.resolution == backendData.resolution) {
       await new Promise(resolve => setTimeout(resolve, 250));
       break fetch;
@@ -393,7 +388,6 @@ async function fetchTopographyData() {
       },
     };
 
-    // we recreate geometry only when a fetch has been performed
     createSphere(backendData.latResolution, backendData.lonResolution);
     applyBackendDisplacement(backendData);
   } catch (error) {
@@ -441,10 +435,7 @@ function onDisplacementChange(e) {
 function onResolutionChange(e) {
   const newResolution = parseInt(e.target.value);
   document.getElementById('resolution-value').textContent = newResolution;
-
-  // we don't recreate geometry here, so the user
-  // doesn't experience slowdown until requesting
-  settings.resolution = newResolution
+  settings.resolution = newResolution;
 }
 
 function onWireframeToggle(e) {
@@ -453,6 +444,11 @@ function onWireframeToggle(e) {
     const newMat = getOrCreateMaterial(settings.wireframe, settings.color);
     sphere.children.forEach(mesh => {
       mesh.material = newMat;
+      
+      // Preserve displacement state when swapping materials
+      if (backendData && !isApplyingDisplacement) {
+        applyBackendDisplacement(backendData);
+      }
     });
   }
 }
@@ -463,7 +459,6 @@ function onAutoRotateToggle(e) {
 }
 
 function onColorChange(e) {
-  // Convert hex string (#rrggbb) to integer
   const hexStr = e.target.value;
   settings.color = parseInt(hexStr.replace('#', ''), 16);
 
@@ -471,6 +466,11 @@ function onColorChange(e) {
     const newMat = getOrCreateMaterial(settings.wireframe, settings.color);
     sphere.children.forEach(mesh => {
       mesh.material = newMat;
+      
+      // Preserve displacement state when swapping materials
+      if (backendData && !isApplyingDisplacement) {
+        applyBackendDisplacement(backendData);
+      }
     });
   }
 }
@@ -524,7 +524,7 @@ window.earthViewer = {
     vertexCount: sphere?.geometry.attributes.position.count ?? 0,
     hasBackendData: !!backendData,
     displacementScale: settings.displacementScale,
-    dataStats: backendData?.stats ?? null
+    dataStats: backendData?.metadata ?? null
   }),
 
   clearCache: () => {

@@ -11,6 +11,8 @@ const (
 	STEP_VALUE     = 512
 	MIN_RESOLUTION = 512
 	MAX_RESOLUTION = 4096
+
+	TARGET_ORIGIN = dataset.SW_ORIGIN
 )
 
 type Backend struct {
@@ -27,6 +29,12 @@ func NewBackend(data dataset.Dataset) (*Backend, error) {
 	if data.RasterX() >= MAX_RESOLUTION {
 		err := data.Downsample(MAX_RESOLUTION)
 		if err != nil {
+			return nil, err
+		}
+	}
+
+	if data.Origin() != TARGET_ORIGIN {
+		if err := data.Transpose(TARGET_ORIGIN); err != nil {
 			return nil, err
 		}
 	}

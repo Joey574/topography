@@ -167,9 +167,17 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 		return err
 	}
 
+	ram.metaData.GeoTransform = rotateGeoTransform(
+		ram.metaData.GeoTransform,
+		ram.metaData.RasterX,
+		ram.metaData.RasterY,
+		ram.metaData.Origin,
+		origin,
+	)
+	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
+
 	ram.metaData.Origin = origin
 	ram.data = buf.Bytes()
-	// TODO : update geo transform
 	return nil
 }
 
@@ -261,6 +269,7 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 
 	bytes := ram.Size()
 	block := uint(ram.l3_size)
+	bpp := uint(ram.metaData.DataType.Bytes())
 
 	if !xflipped && !yflipped {
 		return ram.streamChunk(w, 0, bytes, block)
@@ -268,7 +277,15 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 		// TODO : manual reverse loop
 		return nil
 	} else if !xflipped && yflipped {
-		// TODO : stream rows from the bottom up
+		for r := int(ram.metaData.RasterY) - 1; r >= 0; r-- {
+			sidx := (uint(r) * ram.metaData.RasterX) * bpp
+			eidx := sidx + (ram.metaData.RasterX * bpp)
+
+			if err := ram.streamChunk(w, sidx, eidx, block); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	} else if xflipped && yflipped {
 		// TODO : manual reverse loop
