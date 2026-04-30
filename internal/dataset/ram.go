@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"topography/v2/internal/log"
 
 	"github.com/jaypipes/ghw"
 	gdal "github.com/seerai/godal"
@@ -20,7 +19,7 @@ type RAMDataset struct {
 
 func NewRAMBackend() *RAMDataset {
 	ram := &RAMDataset{
-		l3_size: 128 * 1024,
+		l3_size: 512 * 1024,
 	}
 
 	topo, err := ghw.Topology()
@@ -44,40 +43,18 @@ func NewRAMBackend() *RAMDataset {
 	return ram
 }
 
-func (ram *RAMDataset) Name() string {
-	return "RAM"
-}
-
-func (ram *RAMDataset) Metadata() Metadata {
-	return ram.metaData
-}
+func (ram *RAMDataset) Name() string             { return "RAM" }
+func (ram *RAMDataset) Metadata() Metadata       { return ram.metaData }
+func (ram *RAMDataset) RasterX() uint            { return ram.metaData.RasterX }
+func (ram *RAMDataset) RasterY() uint            { return ram.metaData.RasterY }
+func (ram *RAMDataset) AspectRatio() float64     { return ram.metaData.AspectRatio }
+func (ram *RAMDataset) DataType() DataType       { return ram.metaData.DataType }
+func (ram *RAMDataset) Origin() Origin           { return ram.metaData.Origin }
+func (ram *RAMDataset) GeoTransform() [6]float64 { return ram.metaData.GeoTransform }
 
 func (ram *RAMDataset) Close() error {
+	ram.data = nil
 	return nil
-}
-
-func (ram *RAMDataset) RasterX() uint {
-	return ram.metaData.RasterX
-}
-
-func (ram *RAMDataset) RasterY() uint {
-	return ram.metaData.RasterY
-}
-
-func (ram *RAMDataset) AspectRatio() float64 {
-	return ram.metaData.AspectRatio
-}
-
-func (ram *RAMDataset) DataType() DataType {
-	return ram.metaData.DataType
-}
-
-func (ram *RAMDataset) Origin() Origin {
-	return ram.metaData.Origin
-}
-
-func (ram *RAMDataset) GeoTransform() [6]float64 {
-	return ram.metaData.GeoTransform
 }
 
 func (ram *RAMDataset) Size() uint {
@@ -87,14 +64,14 @@ func (ram *RAMDataset) Size() uint {
 func (ram *RAMDataset) LoadDynamic(path string) error {
 	ds, err := gdal.Open(path, gdal.ReadOnly)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 	defer ds.Close()
 
 	ram.metaData, err = parseMetaData(&ds)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
@@ -104,7 +81,7 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 
 	err = ds.BasicRead(0, 0, int(rx), int(ry), []int{1}, ram.data)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
@@ -114,26 +91,26 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 func (ram *RAMDataset) LoadStatic(r io.Reader) error {
 	f, err := os.CreateTemp("", "*.tif")
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 	defer f.Close()
 
 	_, err = io.Copy(f, r)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
 	path, err := filepath.Abs(f.Name())
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
 	err = ram.LoadDynamic(path)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
@@ -147,6 +124,8 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 		return nil
 	}
 
+	downsample_log(ram.Name(), samples)
+
 	ar := ram.metaData.AspectRatio
 	newRasterX := uint(samples)
 	newRasterY := uint(float64(samples) / ar)
@@ -155,7 +134,7 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 	buf := bytes.NewBuffer(make([]byte, 0, size))
 	err := ram.Write(buf, ram.metaData.Origin, samples)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
@@ -179,10 +158,12 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 		return nil
 	}
 
+	transpose_log(ram.Name(), origin.String())
+
 	buf := bytes.NewBuffer(make([]byte, 0, len(ram.data)))
 	err := ram.Write(buf, origin, ram.metaData.RasterX)
 	if err != nil {
-		log.Logf(dataset_error, ram.Name(), err)
+		dataset_error(ram.Name(), err)
 		return err
 	}
 
@@ -204,6 +185,8 @@ func (ram *RAMDataset) Copy() Dataset {
 }
 
 func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
+	write_log(ram.Name(), origin.String(), samples)
+
 	// handle special case of exact resolution match
 	// special case is included as this is assumed
 	// to be the most common case
@@ -280,23 +263,27 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 	block := uint(ram.l3_size)
 
 	if !xflipped && !yflipped {
-		for i := uint(0); i < bytes; i += block {
-			if _, err := w.Write(ram.data[i:min(i+block, bytes)]); err != nil {
-				return err
-			}
-		}
-
-		return nil
+		return ram.streamChunk(w, 0, bytes, block)
 	} else if xflipped && !yflipped {
-		// TODO
+		// TODO : manual reverse loop
 		return nil
 	} else if !xflipped && yflipped {
-		// TODO
+		// TODO : stream rows from the bottom up
 		return nil
 	} else if xflipped && yflipped {
-		// TODO
+		// TODO : manual reverse loop
 		return nil
 	}
 
 	panic("reached unreachable statement")
+}
+
+func (ram *RAMDataset) streamChunk(w io.Writer, start, end, block uint) error {
+	for i := start; i < end; i += block {
+		if _, err := w.Write(ram.data[i:min(i+block, end)]); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

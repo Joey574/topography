@@ -52,3 +52,18 @@ func (o Origin) IsFlipped(other Origin, axis Axis) bool {
 		return false
 	}
 }
+
+func (o Origin) String() string {
+	switch o {
+	case NW_ORIGIN:
+		return "NW"
+	case SW_ORIGIN:
+		return "SW"
+	case NE_ORIGIN:
+		return "NE"
+	case SE_ORIGIN:
+		return "SE"
+	default:
+		return "unknown"
+	}
+}
