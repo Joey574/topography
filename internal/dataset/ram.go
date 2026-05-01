@@ -196,8 +196,6 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	write_log(ram.Name(), origin.String(), samples)
 
 	// handle special case of exact resolution match
-	// special case is included as this is assumed
-	// to be the most common case
 	if ram.metaData.RasterX == samples {
 		return ram.writeAll(w, origin)
 	}
@@ -274,7 +272,16 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 	if !xflipped && !yflipped {
 		return ram.streamChunk(w, 0, bytes, block)
 	} else if xflipped && !yflipped {
-		// TODO : manual reverse loop
+		for r := uint(0); r < ram.metaData.RasterY; r++ {
+			for c := int(ram.metaData.RasterX) - 1; c >= 0; c-- {
+				idx := (r*ram.metaData.RasterX + uint(c)) * bpp
+
+				if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	} else if !xflipped && yflipped {
 		for r := int(ram.metaData.RasterY) - 1; r >= 0; r-- {
@@ -288,7 +295,16 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 
 		return nil
 	} else if xflipped && yflipped {
-		// TODO : manual reverse loop
+		for r := int(ram.metaData.RasterY) - 1; r >= 0; r-- {
+			for c := int(ram.metaData.RasterX) - 1; c >= 0; c-- {
+				idx := (uint(r)*ram.metaData.RasterX + uint(c)) * bpp
+
+				if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	}
 
