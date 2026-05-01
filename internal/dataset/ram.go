@@ -167,17 +167,15 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 		return err
 	}
 
+	ram.data = buf.Bytes()
 	ram.metaData.GeoTransform = rotateGeoTransform(
 		ram.metaData.GeoTransform,
-		ram.metaData.RasterX,
-		ram.metaData.RasterY,
 		ram.metaData.Origin,
 		origin,
 	)
-	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
 
+	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
 	ram.metaData.Origin = origin
-	ram.data = buf.Bytes()
 	return nil
 }
 

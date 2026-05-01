@@ -4,14 +4,18 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 ENV GOTOOLCHAIN=auto
-RUN go mod download
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY min min
 COPY scripts scripts
 COPY internal internal
 COPY main.go .
 
-RUN ./scripts/build.sh
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    ./scripts/build.sh
 
 FROM ghcr.io/osgeo/gdal:alpine-small-latest
 RUN apk add --no-cache libseccomp && \
@@ -25,7 +29,10 @@ RUN apk add --no-cache libseccomp && \
         /sbin \
         /usr/sbin \
         /usr/share \
-        /usr/include
+        /usr/include \
+        /usr/lib/bash \
+        /usr/lib/cmake \
+        /usr/lib/engines-3
 
 COPY --from=builder --chown=1000:1000 /app/bin/topography /usr/local/bin/topography
 
