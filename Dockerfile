@@ -29,7 +29,10 @@ RUN apk add --no-cache libseccomp && \
         /sbin \
         /usr/sbin \
         /usr/share \
-        /usr/include
+        /usr/include \
+        /usr/lib/bash \
+        /usr/lib/cmake \
+        /usr/lib/engines-3
 
 COPY --from=builder --chown=1000:1000 /app/bin/topography /usr/local/bin/topography
 

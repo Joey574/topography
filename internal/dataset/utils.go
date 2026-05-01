@@ -1,8 +1,6 @@
 package dataset
 
 import (
-	"fmt"
-
 	gdal "github.com/seerai/godal"
 )
 
@@ -86,9 +84,6 @@ func rotateGeoTransform(gt [6]float64, or, nor Origin) [6]float64 {
 		gt[0] = -gt[0]
 		gt[1] = -gt[1]
 	}
-
-	fmt.Println(gt)
-	fmt.Println(ngt)
 
 	return ngt
 }
