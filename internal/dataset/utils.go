@@ -1,7 +1,7 @@
 package dataset
 
 import (
-	"math"
+	"fmt"
 
 	gdal "github.com/seerai/godal"
 )
@@ -71,58 +71,24 @@ func scaleGeoTransform(gt [6]float64, ox, oy, nx, ny uint) [6]float64 {
 	}
 }
 
-func rotateGeoTransform(gt [6]float64, rx, ry uint, or Origin, nor Origin) [6]float64 {
-	// 1. First, let's find the absolute Bounding Box (MinX, MaxX, MinY, MaxY).
-	// We assume the input 'gt' correctly describes the extent from its 'or' origin.
+func rotateGeoTransform(gt [6]float64, or, nor Origin) [6]float64 {
+	ngt := gt
 
-	absW := math.Abs(gt[1]) * float64(rx)
-	absH := math.Abs(gt[5]) * float64(ry)
+	xflip := or.IsFlipped(nor, HORZ_AXIS)
+	yflip := or.IsFlipped(nor, VERT_AXIS)
 
-	var minX, maxY float64
-
-	// Normalize input to the Top-Left (NW) coordinate
-	switch or {
-	case NW_ORIGIN:
-		minX, maxY = gt[0], gt[3]
-	case NE_ORIGIN:
-		minX, maxY = gt[0]-absW, gt[3]
-	case SW_ORIGIN:
-		minX, maxY = gt[0], gt[3]+absH
-	case SE_ORIGIN:
-		minX, maxY = gt[0]-absW, gt[3]+absH
+	if xflip {
+		gt[3] = -gt[3]
+		gt[5] = -gt[5]
 	}
 
-	// 2. Calculate the new origin coordinates (new_gt[0], new_gt[3])
-	var newGT [6]float64
-	resX, resY := math.Abs(gt[1]), math.Abs(gt[5])
-
-	switch nor {
-	case NW_ORIGIN:
-		newGT[0], newGT[3] = minX, maxY
-		newGT[1], newGT[5] = resX, -resY // X goes East, Y goes South
-	case NE_ORIGIN:
-		newGT[0], newGT[3] = minX+absW, maxY
-		newGT[1], newGT[5] = -resX, -resY // X goes West, Y goes South
-	case SW_ORIGIN:
-		newGT[0], newGT[3] = minX, maxY-absH
-		newGT[1], newGT[5] = resX, resY // X goes East, Y goes North
-	case SE_ORIGIN:
-		newGT[0], newGT[3] = minX+absW, maxY-absH
-		newGT[1], newGT[5] = -resX, resY // X goes West, Y goes North
+	if yflip {
+		gt[0] = -gt[0]
+		gt[1] = -gt[1]
 	}
 
-	// 3. Rotation/Skew handling (gt[2] and gt[4])
-	// For simple north-up rasters, these are 0. If they aren't,
-	// they should flip signs based on the axis flip.
-	newGT[2] = gt[2]
-	newGT[4] = gt[4]
+	fmt.Println(gt)
+	fmt.Println(ngt)
 
-	if (or == NW_ORIGIN || or == SW_ORIGIN) && (nor == NE_ORIGIN || nor == SE_ORIGIN) {
-		newGT[2] = -gt[2] // Flipped X axis
-	}
-	if (or == NW_ORIGIN || or == NE_ORIGIN) && (nor == SW_ORIGIN || nor == SE_ORIGIN) {
-		newGT[4] = -gt[4] // Flipped Y axis
-	}
-
-	return newGT
+	return ngt
 }
