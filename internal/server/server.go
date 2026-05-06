@@ -83,10 +83,15 @@ func (s *Server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) 
 	// main functionality
 	mux := http.NewServeMux()
 	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData, HTML_CACHE))
-	mux.Handle("GET /health_check", s.HealthCheck(d))
 	mux.Handle("GET /topography", s.TopographyHandler(d))
+
+	// static
 	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js", STATIC_CACHE))
 	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css", STATIC_CACHE))
+
+	// health & status
+	mux.Handle("GET /heartbeat", s.heartbeatHandler(d))
+	mux.Handle("GET /metadata", s.metadataHandler(d))
 
 	// utility
 	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt", DEFAULT_CACHE))

@@ -2,9 +2,11 @@ package dataset
 
 import (
 	"io"
+	"io/fs"
 )
 
 type Metadata struct {
+	Source      string   `json:"Source"`
 	RasterX     uint     `json:"RasterX"`
 	RasterY     uint     `json:"RasterY"`
 	AspectRatio float64  `json:"AspectRatio"`
@@ -36,7 +38,7 @@ type Dataset interface {
 	Size() uint
 
 	LoadDynamic(path string) error
-	LoadStatic(r io.Reader) error
+	LoadStatic(fs fs.File) error
 
 	Downsample(samples uint) error
 	Transpose(origin Origin) error
@@ -44,5 +46,5 @@ type Dataset interface {
 	Copy() Dataset
 
 	Write(w io.Writer, origin Origin, samples uint) error
-	At(w io.Writer, origin Origin, lat, lon float64) error
+	At(origin Origin, lat, lon float64) float32
 }

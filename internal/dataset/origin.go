@@ -1,5 +1,7 @@
 package dataset
 
+import "encoding/json"
+
 type Origin byte
 type Axis byte
 
@@ -66,4 +68,8 @@ func (o Origin) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+func (o Origin) MarshalJSON() ([]byte, error) {
+	return json.Marshal(o.String())
 }

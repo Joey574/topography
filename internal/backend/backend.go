@@ -1,7 +1,9 @@
 package backend
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"sync"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
@@ -59,4 +61,13 @@ func NewBackend(data dataset.Dataset) (*Backend, error) {
 
 	log.Logf(initialize_log, data.Name(), len(d.ds))
 	return d, nil
+}
+
+func (b *Backend) DumpMetadata(w io.Writer) error {
+	data := make([]dataset.Metadata, len(b.ds))
+	for i := range b.ds {
+		data[i] = b.ds[i].Metadata()
+	}
+
+	return json.NewEncoder(w).Encode(data)
 }

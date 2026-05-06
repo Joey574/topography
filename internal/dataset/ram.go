@@ -2,12 +2,17 @@ package dataset
 
 import (
 	"bytes"
+	"crypto/rand"
+	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"unsafe"
 
 	"github.com/jaypipes/ghw"
 	gdal "github.com/seerai/godal"
+	"github.com/x448/float16"
 )
 
 type RAMDataset struct {
@@ -69,7 +74,7 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 	}
 	defer ds.Close()
 
-	ram.metaData, err = parseMetaData(&ds)
+	ram.metaData, err = parseMetaData(&ds, path)
 	if err != nil {
 		dataset_error(ram.Name(), err)
 		return err
@@ -88,15 +93,20 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 	return nil
 }
 
-func (ram *RAMDataset) LoadStatic(r io.Reader) error {
-	f, err := os.CreateTemp("", "*.tif")
+func (ram *RAMDataset) LoadStatic(fs fs.File) error {
+	name := rand.Text() + ".tif"
+	if info, err := fs.Stat(); err == nil {
+		name = info.Name()
+	}
+
+	f, err := os.Create(fmt.Sprintf("/%s/%s", os.TempDir(), name))
 	if err != nil {
 		dataset_error(ram.Name(), err)
 		return err
 	}
 	defer f.Close()
 
-	_, err = io.Copy(f, r)
+	_, err = io.Copy(f, fs)
 	if err != nil {
 		dataset_error(ram.Name(), err)
 		return err
@@ -236,7 +246,7 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	return nil
 }
 
-func (ram *RAMDataset) At(w io.Writer, origin Origin, lat, lon float64) error {
+func (ram *RAMDataset) At(origin Origin, lat, lon float64) float32 {
 	xflip := ram.metaData.Origin.IsFlipped(origin, VERT_AXIS)
 	yflip := ram.metaData.Origin.IsFlipped(origin, HORZ_AXIS)
 
@@ -255,8 +265,15 @@ func (ram *RAMDataset) At(w io.Writer, origin Origin, lat, lon float64) error {
 	bpp := uint(ram.metaData.DataType.Bytes())
 	idx := (py*ram.metaData.RasterX + px) * bpp
 
-	_, err := w.Write(ram.data[idx : idx+bpp])
-	return err
+	switch ram.metaData.DataType {
+	case FLOAT_16:
+		return float16.Frombits(*(*uint16)(unsafe.Pointer(&ram.data[idx]))).Float32()
+	case FLOAT_32:
+		return *(*float32)(unsafe.Pointer(&ram.data[idx]))
+	default:
+		dataset_error(ram.Name(), fmt.Errorf("unrecognized data type"))
+		return 0
+	}
 }
 
 func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {

@@ -1,6 +1,9 @@
 package dataset
 
-import "io"
+import (
+	"io"
+	"io/fs"
+)
 
 type DiskDataset struct {
 	metaData Metadata
@@ -58,7 +61,7 @@ func (d *DiskDataset) LoadDynamic(path string) error {
 	return nil // TODO
 }
 
-func (d *DiskDataset) LoadStatic(r io.Reader) error {
+func (d *DiskDataset) LoadStatic(fs fs.File) error {
 	return nil // TODO
 }
 
@@ -78,6 +81,6 @@ func (d *DiskDataset) Write(w io.Writer, origin Origin, samples uint) error {
 	return nil // TODO
 }
 
-func (d *DiskDataset) At(w io.Writer, origin Origin, lat, lon float64) error {
-	return nil // TODO
+func (d *DiskDataset) At(origin Origin, lat, lon float64) float32 {
+	return 0 // TODO
 }

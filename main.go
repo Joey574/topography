@@ -92,6 +92,7 @@ func run() {
 		if err = ds.LoadStatic(f); err != nil {
 			log.Fatalln(err)
 		}
+		f.Close()
 	}
 
 	if args.Server {

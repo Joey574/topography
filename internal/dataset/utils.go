@@ -4,8 +4,9 @@ import (
 	gdal "github.com/seerai/godal"
 )
 
-func parseMetaData(ds *gdal.Dataset) (Metadata, error) {
+func parseMetaData(ds *gdal.Dataset, source string) (Metadata, error) {
 	m := Metadata{}
+	m.Source = source
 
 	m.RasterX = uint(ds.RasterXSize())
 	m.RasterY = uint(ds.RasterYSize())
