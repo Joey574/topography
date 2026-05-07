@@ -41,7 +41,7 @@ func NewRAMBackend() *RAMDataset {
 		}
 
 		if l3 > ram.l3_size {
-			ram.l3_size = l3
+			ram.l3_size = (8 * l3) / 10
 		}
 	}
 
