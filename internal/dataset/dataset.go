@@ -3,6 +3,9 @@ package dataset
 import (
 	"io"
 	"io/fs"
+	"path/filepath"
+
+	gdal "github.com/seerai/godal"
 )
 
 type Metadata struct {
@@ -15,6 +18,24 @@ type Metadata struct {
 
 	GeoTransform    [6]float64 `json:"GeoTransform"`
 	InvGeoTransform [6]float64 `json:"InvGeoTransform"`
+}
+
+func NewMetadata(ds *gdal.Dataset) Metadata {
+	name := "unknown"
+	if files := ds.FileList(); len(files) != 0 {
+		name = files[0]
+	}
+
+	return Metadata{
+		Source:          filepath.Base(name),
+		RasterX:         uint(ds.RasterXSize()),
+		RasterY:         uint(ds.RasterYSize()),
+		AspectRatio:     float64(ds.RasterXSize()) / float64(ds.RasterYSize()),
+		DataType:        fromGDAL(ds.RasterBand(1).RasterDataType()),
+		GeoTransform:    ds.GeoTransform(),
+		InvGeoTransform: ds.InvGeoTransform(),
+		Origin:          parseOrigin(ds.GeoTransform()),
+	}
 }
 
 type Dataset interface {

@@ -74,12 +74,7 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 	}
 	defer ds.Close()
 
-	ram.metaData, err = parseMetaData(&ds, path)
-	if err != nil {
-		dataset_error(ram.Name(), err)
-		return err
-	}
-
+	ram.metaData = NewMetadata(&ds)
 	rx := ram.metaData.RasterX
 	ry := ram.metaData.RasterY
 	ram.data = make([]byte, ram.Size())

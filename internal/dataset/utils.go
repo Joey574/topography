@@ -1,38 +1,5 @@
 package dataset
 
-import (
-	gdal "github.com/seerai/godal"
-)
-
-func parseMetaData(ds *gdal.Dataset, source string) (Metadata, error) {
-	m := Metadata{}
-	m.Source = source
-
-	m.RasterX = uint(ds.RasterXSize())
-	m.RasterY = uint(ds.RasterYSize())
-	m.AspectRatio = float64(m.RasterX) / float64(m.RasterY)
-
-	band := ds.RasterBand(1)
-	m.DataType = parseDataType(&band)
-	gt := ds.GeoTransform()
-
-	m.GeoTransform = gt
-	m.InvGeoTransform = gdal.InvGeoTransform(gt)
-	m.Origin = parseOrigin(gt)
-	return m, nil
-}
-
-func parseDataType(band *gdal.RasterBand) DataType {
-	switch band.RasterDataType().Name() {
-	case "Float16":
-		return FLOAT_16
-	case "Float32":
-		return FLOAT_32
-	default:
-		panic("unsupported data type")
-	}
-}
-
 func parseOrigin(gt [6]float64) Origin {
 	w := gt[1]
 	h := gt[5]
@@ -71,20 +38,25 @@ func scaleGeoTransform(gt [6]float64, ox, oy, nx, ny uint) [6]float64 {
 }
 
 func rotateGeoTransform(gt [6]float64, or, nor Origin) [6]float64 {
-	ngt := gt
-
 	xflip := or.IsFlipped(nor, HORZ_AXIS)
 	yflip := or.IsFlipped(nor, VERT_AXIS)
 
+	x := float64(1)
 	if xflip {
-		gt[3] = -gt[3]
-		gt[5] = -gt[5]
+		x = -1
 	}
 
+	y := float64(1)
 	if yflip {
-		gt[0] = -gt[0]
-		gt[1] = -gt[1]
+		y = -1
 	}
 
-	return ngt
+	return [6]float64{
+		gt[0] * y,
+		gt[1] * y,
+		gt[2],
+		gt[3] * x,
+		gt[4],
+		gt[5] * x,
+	}
 }

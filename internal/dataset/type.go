@@ -1,6 +1,10 @@
 package dataset
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	gdal "github.com/seerai/godal"
+)
 
 type DataType byte
 
@@ -17,6 +21,17 @@ func (d DataType) Bytes() uint8 {
 		return 4
 	default:
 		panic("unrecognized data type")
+	}
+}
+
+func fromGDAL(t gdal.DataType) DataType {
+	switch t.Name() {
+	case "Float16":
+		return FLOAT_16
+	case "Float32":
+		return FLOAT_32
+	default:
+		panic("unsupported data type")
 	}
 }
 
