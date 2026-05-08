@@ -9,15 +9,12 @@ import (
 	"time"
 	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
-	"topography/v2/internal/log"
 )
 
-type Server struct {
+type server struct {
 	srv  *http.Server
 	tmpl *template.Template
 }
-
-const seccompFile = "min/security/seccomp.txt"
 
 func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, port uint16) error {
 
@@ -26,33 +23,33 @@ func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, por
 		return err
 	}
 
-	h, err := NewServer(fs, bck, fmt.Sprintf("%s:%d", host, port))
+	s, err := newServer(fs, bck, fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return err
 	}
 
 	if sandbox {
-		// ensure landlock is ran first as to prevent the need of additional syscalls
-		SetLandlockFilters(port)
+		// ensure landlock runs first to prevent the need of additional syscalls
+		setLandlockFilters(port)
 
 		bytes, err := fs.ReadFile(seccompFile)
 		if err != nil {
 			return err
 		}
 
-		if err = SetSeccompFilters(strings.Split(string(bytes), ",")); err != nil {
+		// limit allowed syscalls
+		if err = setSeccompFilters(strings.Split(string(bytes), ",")); err != nil {
 			return err
 		}
-
 	}
 
-	return h.srv.ListenAndServe()
+	return s.srv.ListenAndServe()
 }
 
-func NewServer(fs embed.FS, d *backend.Backend, addr string) (*Server, error) {
-	s := &Server{}
-	s.tmpl = template.Must(template.ParseFS(fs, "min/html/*.html"))
-	h, err := s.handler(fs, d)
+func newServer(f embed.FS, d *backend.Backend, addr string) (*server, error) {
+	s := &server{}
+	s.tmpl = template.Must(template.ParseFS(f, htmlFiles))
+	h, err := s.handler(f, d)
 	if err != nil {
 		return nil, err
 	}
@@ -68,12 +65,12 @@ func NewServer(fs embed.FS, d *backend.Backend, addr string) (*Server, error) {
 		MaxHeaderBytes:    1 << 20,
 	}
 
-	log.Logf(initialize_log)
+	initialize_log(addr)
 	return s, err
 }
 
 // Returns a http.Handler packaged with all the handlers and security protections
-func (s *Server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) {
+func (s *server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) {
 	indexData := map[string]int{
 		"STEP_VALUE":     backend.STEP_VALUE,
 		"MIN_RESOLUTION": backend.MIN_RESOLUTION,
@@ -83,21 +80,21 @@ func (s *Server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) 
 	// main functionality
 	mux := http.NewServeMux()
 	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData, HTML_CACHE))
-	mux.Handle("GET /topography", s.TopographyHandler(d))
+	mux.Handle("GET /topography", s.topographyHandler(d))
 
 	// static
-	mux.Handle("GET /static/js/script.js", s.defaultHandler(fs, "min/js/script.js", STATIC_CACHE))
-	mux.Handle("GET /static/css/style.css", s.defaultHandler(fs, "min/css/style.css", STATIC_CACHE))
+	mux.Handle("GET /static/js/script.js", s.staticHandler(fs, "min/js/script.js", STATIC_CACHE))
+	mux.Handle("GET /static/css/style.css", s.staticHandler(fs, "min/css/style.css", STATIC_CACHE))
 
 	// health & status
 	mux.Handle("GET /heartbeat", s.heartbeatHandler(d))
 	mux.Handle("GET /metadata", s.metadataHandler(d))
 
 	// utility
-	mux.Handle("GET /robots.txt", s.defaultHandler(fs, "min/misc/robots.txt", DEFAULT_CACHE))
-	mux.Handle("GET /humans.txt", s.defaultHandler(fs, "min/misc/humans.txt", DEFAULT_CACHE))
-	mux.Handle("GET /sitemap.xml", s.defaultHandler(fs, "min/misc/sitemap.xml", DEFAULT_CACHE))
-	mux.Handle("GET /favicon.ico", s.defaultHandler(fs, "min/misc/favicon.svg", DEFAULT_CACHE))
+	mux.Handle("GET /robots.txt", s.staticHandler(fs, "min/misc/robots.txt", DEFAULT_CACHE))
+	mux.Handle("GET /humans.txt", s.staticHandler(fs, "min/misc/humans.txt", DEFAULT_CACHE))
+	mux.Handle("GET /sitemap.xml", s.staticHandler(fs, "min/misc/sitemap.xml", DEFAULT_CACHE))
+	mux.Handle("GET /favicon.ico", s.staticHandler(fs, "min/misc/favicon.svg", DEFAULT_CACHE))
 	mux.Handle("GET /about", s.templateHandler("about.html", nil, HTML_CACHE))
 	mux.Handle("GET /contact", s.templateHandler("contact.html", nil, HTML_CACHE))
 
