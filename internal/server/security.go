@@ -2,7 +2,6 @@ package server
 
 import (
 	"sync"
-	"topography/v2/internal/log"
 
 	"github.com/landlock-lsm/go-landlock/landlock"
 	seccomp "github.com/seccomp/libseccomp-golang"
@@ -10,7 +9,7 @@ import (
 
 var once sync.Once
 
-func SetSeccompFilters(syscalls []string) error {
+func setSeccompFilters(syscalls []string) error {
 	var e error
 
 	once.Do(func() {
@@ -44,7 +43,7 @@ func SetSeccompFilters(syscalls []string) error {
 	return e
 }
 
-func SetLandlockFilters(port uint16) {
+func setLandlockFilters(port uint16) {
 	// at this point dataset is already loaded and tmp dir access is unnesecary
 	rule := landlock.CompositeRule(
 		landlock.RODirs(),
@@ -53,16 +52,16 @@ func SetLandlockFilters(port uint16) {
 	)
 
 	if err := landlock.V8.RestrictScoped(); err != nil {
-		log.Logf(server_error, err)
+		server_error(err)
 		if err = landlock.V8.BestEffort().RestrictScoped(); err != nil {
-			log.Logf(server_error, err)
+			server_error(err)
 		}
 	}
 
 	if err := landlock.V8.Restrict(rule); err != nil {
-		log.Logf(server_error, err)
+		server_error(err)
 		if err = landlock.V8.BestEffort().Restrict(rule); err != nil {
-			log.Logf(server_error, err)
+			server_error(err)
 		}
 	}
 }

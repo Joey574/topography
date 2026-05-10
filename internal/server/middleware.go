@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"topography/v2/internal/log"
 )
 
 func csrfHandler(next http.Handler) (http.Handler, error) {
@@ -34,20 +33,19 @@ func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		remoteAddr := strings.Split(r.RemoteAddr, ":")
 		if len(remoteAddr) != 2 {
-			// non-fatal server error, just log unexpected and continue
-			log.Logf(server_error, fmt.Errorf("%s is invalid for expected ip:port format", r.RemoteAddr))
-			next.ServeHTTP(w, r)
+			// non-fatal server error, just log unexpected result and continue
+			server_error(fmt.Errorf("got %s expected ip:port", r.RemoteAddr))
 		} else {
 			remoteIp := remoteAddr[0]
 
 			if ip, cc := cfHeaders(r); net.ParseIP(remoteIp).IsPrivate() && ip != "" && cc != "" {
-				log.Logf(cf_request_log, ip, cc, r.URL.Path, r.Method)
+				cf_request_log(ip, cc, r.URL.Path, r.Method)
 			} else {
-				log.Logf(request_log, remoteIp, r.URL.Path, r.Method)
+				request_log(remoteIp, r.URL.Path, r.Method)
 			}
-
-			next.ServeHTTP(w, r)
 		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -55,7 +53,7 @@ func recoveryHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Logf(server_error, err)
+				server_error(fmt.Errorf("%z", err))
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
