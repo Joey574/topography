@@ -27,7 +27,7 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 	defer logResponse(req.Resolution, time.Now())
 
 	idx := (req.Resolution / STEP_VALUE) - 1
-	idx = max(idx, uint(len(d.ds)-1))
+	idx = min(idx, uint(len(d.ds)-1))
 
 	ds := d.ds[idx]
 	resX := req.Resolution
