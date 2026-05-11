@@ -72,7 +72,9 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 		dataset_error(ram.Name(), err)
 		return err
 	}
-	defer ds.Close()
+
+	defer closeGDAL()
+	defer cleanupGDALDataset(&ds)
 
 	ram.metaData = NewMetadata(&ds)
 	rx := ram.metaData.RasterX
@@ -143,6 +145,7 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 		return err
 	}
 
+	ram.data = nil
 	ram.data = buf.Bytes()
 	ram.metaData.GeoTransform = scaleGeoTransform(
 		ram.metaData.GeoTransform,
@@ -162,7 +165,7 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 	if origin == ram.metaData.Origin {
 		return nil
 	}
-	transpose_log(ram.Name(), origin.String())
+	transpose_log(ram.Name(), origin)
 
 	buf := bytes.NewBuffer(make([]byte, 0, len(ram.data)))
 	err := ram.Write(buf, origin, ram.metaData.RasterX)
@@ -171,6 +174,7 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 		return err
 	}
 
+	ram.data = nil
 	ram.data = buf.Bytes()
 	ram.metaData.GeoTransform = rotateGeoTransform(
 		ram.metaData.GeoTransform,
@@ -181,6 +185,43 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
 	ram.metaData.Origin = origin
 	return nil
+}
+
+func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) Dataset {
+	if samples >= ram.metaData.RasterX {
+		return nil
+	}
+	transform_log(ram.Name(), origin, samples)
+
+	ar := ram.metaData.AspectRatio
+	nrx := uint(samples)
+	nry := uint(float64(samples) / ar)
+	size := nrx * nry * uint(ram.metaData.DataType.Bytes())
+
+	buf := bytes.NewBuffer(make([]byte, 0, size))
+	err := ram.Write(buf, ram.metaData.Origin, samples)
+	if err != nil {
+		dataset_error(ram.Name(), err)
+		return nil
+	}
+
+	meta := ram.metaData
+	meta.GeoTransform = scaleGeoTransform(
+		ram.metaData.GeoTransform,
+		ram.metaData.RasterX,
+		ram.metaData.RasterY,
+		nrx,
+		nry,
+	)
+	meta.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
+	meta.RasterX = nrx
+	meta.RasterY = nry
+
+	return &RAMDataset{
+		data:     buf.Bytes(),
+		l3_size:  ram.l3_size,
+		metaData: meta,
+	}
 }
 
 func (ram *RAMDataset) Copy() Dataset {
@@ -195,7 +236,7 @@ func (ram *RAMDataset) Copy() Dataset {
 }
 
 func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
-	write_log(ram.Name(), origin.String(), samples)
+	write_log(ram.Name(), origin, samples)
 
 	// handle special case of exact resolution match
 	if ram.metaData.RasterX == samples {

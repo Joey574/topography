@@ -64,6 +64,8 @@ type Dataset interface {
 	Downsample(samples uint) error
 	Transpose(origin Origin) error
 
+	TransformCopy(origin Origin, samples uint) Dataset
+
 	Copy() Dataset
 
 	Write(w io.Writer, origin Origin, samples uint) error

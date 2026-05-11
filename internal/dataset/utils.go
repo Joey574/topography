@@ -1,5 +1,7 @@
 package dataset
 
+import gdal "github.com/seerai/godal"
+
 func parseOrigin(gt [6]float64) Origin {
 	w := gt[1]
 	h := gt[5]
@@ -59,4 +61,15 @@ func rotateGeoTransform(gt [6]float64, or, nor Origin) [6]float64 {
 		gt[4],
 		gt[5] * x,
 	}
+}
+
+func closeGDAL() {
+	gdal.CleanupOGR()
+	gdal.CleanupSR()
+	gdal.SetCacheMax(0)
+}
+
+func cleanupGDALDataset(ds *gdal.Dataset) {
+	ds.FlushCache()
+	ds.Close()
 }

@@ -8,5 +8,11 @@ CPP_FLAGS="-O3 -march=native -mtune=native -D_FORTIFY_SOURCE=2"
 
 OUTPUT="./bin/topography"
 
-CGO_ENABLED=1 CGO_CFLAGS="$C_FLAGS" CGO_CPPFLAGS="$CPP_FLAGS" go build $BUILDFLAGS -ldflags="$LDFLAGS" -gcflags="$GCFLAGS" -o $OUTPUT
+CGO_ENABLED=1 CGO_CFLAGS="$C_FLAGS" CGO_CPPFLAGS="$CPP_FLAGS" \
+    go build \
+    $BUILDFLAGS \
+    -ldflags="$LDFLAGS" \
+    -gcflags="$GCFLAGS" \
+    -o $OUTPUT
+
 strip $OUTPUT

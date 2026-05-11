@@ -52,7 +52,7 @@ func (d *DiskDataset) LoadDynamic(path string) error {
 }
 
 func (d *DiskDataset) LoadStatic(fs fs.File) error {
-	return fmt.Errorf("static is not supported for a disk dataset")
+	return fmt.Errorf("static is not supported for a disk dataset, provide a dataset with the -f flag")
 }
 
 func (d *DiskDataset) Downsample(samples uint) error {
@@ -63,12 +63,17 @@ func (d *DiskDataset) Transpose(origin Origin) error {
 	return nil // TODO
 }
 
+func (d *DiskDataset) TransformCopy(origin Origin, samples uint) Dataset {
+	return nil // TODO
+}
+
 func (d *DiskDataset) Copy() Dataset {
-	return d
+	// as of now disk copying proves too expensive and complex to justify implementing it
+	return nil
 }
 
 func (d *DiskDataset) Write(w io.Writer, origin Origin, samples uint) error {
-	write_log(d.Name(), origin.String(), samples)
+	write_log(d.Name(), origin, samples)
 
 	rx := d.metaData.RasterX
 	ry := d.metaData.RasterY
