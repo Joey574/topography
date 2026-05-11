@@ -132,9 +132,9 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 	downsample_log(ram.Name(), samples)
 
 	ar := ram.metaData.AspectRatio
-	newRasterX := uint(samples)
-	newRasterY := uint(float64(samples) / ar)
-	size := newRasterX * newRasterY * uint(ram.metaData.DataType.Bytes())
+	nrx := uint(samples)
+	nry := uint(float64(samples) / ar)
+	size := nrx * nry * uint(ram.metaData.DataType.Bytes())
 
 	buf := bytes.NewBuffer(make([]byte, 0, size))
 	err := ram.Write(buf, ram.metaData.Origin, samples)
@@ -148,13 +148,13 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 		ram.metaData.GeoTransform,
 		ram.metaData.RasterX,
 		ram.metaData.RasterY,
-		newRasterX,
-		newRasterY,
+		nrx,
+		nry,
 	)
 
 	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
-	ram.metaData.RasterX = newRasterX
-	ram.metaData.RasterY = newRasterY
+	ram.metaData.RasterX = nrx
+	ram.metaData.RasterY = nry
 	return nil
 }
 
@@ -162,7 +162,6 @@ func (ram *RAMDataset) Transpose(origin Origin) error {
 	if origin == ram.metaData.Origin {
 		return nil
 	}
-
 	transpose_log(ram.Name(), origin.String())
 
 	buf := bytes.NewBuffer(make([]byte, 0, len(ram.data)))
@@ -231,6 +230,7 @@ func (ram *RAMDataset) Write(w io.Writer, origin Origin, samples uint) error {
 		for range samples {
 			idx := (uint(y)*rx + uint(x)) * bpp
 			if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
+				dataset_error(ram.Name(), err)
 				return err
 			}
 			x += incx
@@ -287,6 +287,7 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 				idx := (r*ram.metaData.RasterX + uint(c)) * bpp
 
 				if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
+					dataset_error(ram.Name(), err)
 					return err
 				}
 			}
@@ -299,6 +300,7 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 			eidx := sidx + (ram.metaData.RasterX * bpp)
 
 			if err := ram.streamChunk(w, sidx, eidx, block); err != nil {
+				dataset_error(ram.Name(), err)
 				return err
 			}
 		}
@@ -310,6 +312,7 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 				idx := (uint(r)*ram.metaData.RasterX + uint(c)) * bpp
 
 				if _, err := w.Write(ram.data[idx : idx+bpp]); err != nil {
+					dataset_error(ram.Name(), err)
 					return err
 				}
 			}
@@ -324,6 +327,7 @@ func (ram *RAMDataset) writeAll(w io.Writer, origin Origin) error {
 func (ram *RAMDataset) streamChunk(w io.Writer, start, end, block uint) error {
 	for i := start; i < end; i += block {
 		if _, err := w.Write(ram.data[i:min(i+block, end)]); err != nil {
+			dataset_error(ram.Name(), err)
 			return err
 		}
 	}

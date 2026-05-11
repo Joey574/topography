@@ -25,7 +25,7 @@ type Backend struct {
 func NewBackend(data dataset.Dataset) (*Backend, error) {
 	d := &Backend{}
 	if data.RasterX() < MAX_RESOLUTION {
-		return nil, fmt.Errorf("dataset is too smoll")
+		return nil, fmt.Errorf("dataset is too small")
 	}
 
 	if data.RasterX() >= MAX_RESOLUTION {

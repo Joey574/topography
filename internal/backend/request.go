@@ -22,13 +22,13 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 	defer logResponse(req.Resolution, time.Now())
 
 	idx := (req.Resolution / STEP_VALUE) - 1
-	ds := d.ds[idx]
-	if req.Resolution != ds.RasterX() {
-		err := fmt.Errorf("expected resolution '%d', got '%d'", ds.RasterX(), req.Resolution)
+	if idx >= uint(len(d.ds)) {
+		err := fmt.Errorf("expected idx '[0-%d)', got '%d'", len(d.ds), idx)
 		log.Logf(backend_error, err)
 		return err
 	}
 
+	ds := d.ds[idx]
 	resX := req.Resolution
 	resY := uint(float64(req.Resolution) / ds.AspectRatio())
 	verts := resX * resY

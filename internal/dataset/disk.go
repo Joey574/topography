@@ -1,68 +1,58 @@
 package dataset
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
+
+	gdal "github.com/seerai/godal"
 )
 
 type DiskDataset struct {
 	metaData Metadata
+	ds       *gdal.Dataset
 }
 
 func NewDISKBackend() *DiskDataset {
 	return &DiskDataset{}
 }
 
-func (d *DiskDataset) Name() string {
-	return "DISK"
-}
-
-func (d *DiskDataset) Metadata() Metadata {
-	return d.metaData
-}
+func (d *DiskDataset) Name() string             { return "DISK" }
+func (d *DiskDataset) Metadata() Metadata       { return d.metaData }
+func (d *DiskDataset) RasterX() uint            { return d.metaData.RasterX }
+func (d *DiskDataset) RasterY() uint            { return d.metaData.RasterY }
+func (d *DiskDataset) AspectRatio() float64     { return d.metaData.AspectRatio }
+func (d *DiskDataset) DataType() DataType       { return d.metaData.DataType }
+func (d *DiskDataset) Origin() Origin           { return d.metaData.Origin }
+func (d *DiskDataset) GeoTransform() [6]float64 { return d.metaData.GeoTransform }
 
 func (d *DiskDataset) Close() error {
-	return nil // TODO
-}
-
-func (d *DiskDataset) RasterX() uint {
-	return 0 // TODO
-}
-
-func (d *DiskDataset) RasterY() uint {
-	return 0 // TODO
-}
-
-func (d *DiskDataset) AspectRatio() float64 {
-	return 0 // TODO
-}
-
-func (d *DiskDataset) DataType() DataType {
-	return 0 // TODO
-}
-
-func (d *DiskDataset) Origin() Origin {
-	return 0 // TODO
-}
-
-func (d *DiskDataset) GeoTransform() [6]float64 {
-	return [6]float64{} // TODO
+	d.ds.Close()
+	return nil
 }
 
 func (d *DiskDataset) Size() uint {
-	return 0 // TODO
-}
-
-func (d *DiskDataset) Data() []byte {
-	return nil // TODO
+	return d.metaData.RasterX * d.metaData.RasterY * uint(d.metaData.DataType.Bytes())
 }
 
 func (d *DiskDataset) LoadDynamic(path string) error {
-	return nil // TODO
+	if d.ds != nil {
+		d.Close()
+	}
+
+	ds, err := gdal.Open(path, gdal.ReadOnly)
+	if err != nil {
+		dataset_error(d.Name(), err)
+		return err
+	}
+
+	d.ds = &ds
+	d.metaData = NewMetadata(d.ds)
+	return nil
 }
 
 func (d *DiskDataset) LoadStatic(fs fs.File) error {
-	return nil // TODO
+	return fmt.Errorf("static is not supported for a disk dataset")
 }
 
 func (d *DiskDataset) Downsample(samples uint) error {
@@ -74,11 +64,54 @@ func (d *DiskDataset) Transpose(origin Origin) error {
 }
 
 func (d *DiskDataset) Copy() Dataset {
-	return nil // TODO
+	return d
 }
 
 func (d *DiskDataset) Write(w io.Writer, origin Origin, samples uint) error {
-	return nil // TODO
+	write_log(d.Name(), origin.String(), samples)
+
+	rx := d.metaData.RasterX
+	ry := d.metaData.RasterY
+	ar := d.metaData.AspectRatio
+
+	sx := uint(0)
+	sy := uint(0)
+	incx := float64(rx) / float64(samples)
+	incy := float64(ry) * ar / float64(samples)
+	samplesY := uint(float64(samples) / ar)
+
+	if d.metaData.Origin.IsFlipped(origin, HORZ_AXIS) {
+		sx = rx - 1
+		incx = -incx
+	}
+
+	if d.metaData.Origin.IsFlipped(origin, VERT_AXIS) {
+		sy = ry - 1
+		incy = -incy
+	}
+
+	buf := make([]byte, d.metaData.DataType.Bytes())
+
+	y := float64(sy)
+	for range samplesY {
+		x := float64(sx)
+
+		for range samples {
+			if err := d.ds.BasicRead(int(x), int(y), 1, 1, []int{1}, buf); err != nil {
+				dataset_error(d.Name(), err)
+				return err
+			}
+
+			if _, err := w.Write(buf); err != nil {
+				dataset_error(d.Name(), err)
+				return err
+			}
+			x += incx
+		}
+		y += incy
+	}
+
+	return nil
 }
 
 func (d *DiskDataset) At(origin Origin, lat, lon float64) float32 {
