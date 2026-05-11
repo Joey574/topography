@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
+
 Disallow: /topography
 Disallow: /heartbeat
 Disallow: /metadata
+
 Sitemap: /sitemap.xml

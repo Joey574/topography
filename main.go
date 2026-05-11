@@ -77,7 +77,7 @@ func run() {
 		ds = dataset.NewRAMBackend()
 	}
 
-	// if a file was provided, we'll attempt to load it dynamically, otherwise we assume a default static tiff
+	// if a file was provided, we'll attempt to load it dynamically, otherwise we use the embedded .tif
 	if args.File != "" {
 		err = ds.LoadDynamic(args.File)
 		if err != nil {
