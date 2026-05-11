@@ -55,11 +55,7 @@ func (d *DiskDataset) LoadStatic(fs fs.File) error {
 	return fmt.Errorf("static is not supported for a disk dataset, provide a dataset with the -f flag")
 }
 
-func (d *DiskDataset) Downsample(samples uint) error {
-	return nil // TODO
-}
-
-func (d *DiskDataset) Transpose(origin Origin) error {
+func (d *DiskDataset) Transform(origin Origin, samples uint) error {
 	return nil // TODO
 }
 

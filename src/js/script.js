@@ -371,7 +371,7 @@ async function fetchTopographyData() {
     if (dataType == 0) {
       // float16
       displacements = new Float16Array(buffer, 16, vertexCount);
-    } else if (dataType == 2) {
+    } else if (dataType == 1) {
       // float32
       displacements = new Float32Array(buffer, 16, vertexCount);
     }

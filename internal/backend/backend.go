@@ -29,14 +29,8 @@ func NewBackend(ds dataset.Dataset) (*Backend, error) {
 		return nil, fmt.Errorf("dataset is too small")
 	}
 
-	if ds.RasterX() > MAX_RESOLUTION {
-		if err := ds.Downsample(MAX_RESOLUTION); err != nil {
-			return nil, err
-		}
-	}
-
-	if ds.Origin() != TARGET_ORIGIN {
-		if err := ds.Transpose(TARGET_ORIGIN); err != nil {
+	if ds.RasterX() != MAX_RESOLUTION || ds.Origin() != TARGET_ORIGIN {
+		if err := ds.Transform(TARGET_ORIGIN, MAX_RESOLUTION); err != nil {
 			return nil, err
 		}
 	}

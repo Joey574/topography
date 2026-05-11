@@ -61,9 +61,7 @@ type Dataset interface {
 	LoadDynamic(path string) error
 	LoadStatic(fs fs.File) error
 
-	Downsample(samples uint) error
-	Transpose(origin Origin) error
-
+	Transform(origin Origin, samples uint) error
 	TransformCopy(origin Origin, samples uint) Dataset
 
 	Copy() Dataset

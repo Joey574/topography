@@ -126,12 +126,8 @@ func (ram *RAMDataset) LoadStatic(fs fs.File) error {
 	return nil
 }
 
-func (ram *RAMDataset) Downsample(samples uint) error {
-	if samples >= ram.metaData.RasterX {
-		return nil
-	}
-
-	downsample_log(ram.Name(), samples)
+func (ram *RAMDataset) Transform(origin Origin, samples uint) error {
+	transform_log(ram.Name(), origin, samples)
 
 	ar := ram.metaData.AspectRatio
 	nrx := uint(samples)
@@ -145,7 +141,6 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 		return err
 	}
 
-	ram.data = nil
 	ram.data = buf.Bytes()
 	ram.metaData.GeoTransform = scaleGeoTransform(
 		ram.metaData.GeoTransform,
@@ -154,43 +149,13 @@ func (ram *RAMDataset) Downsample(samples uint) error {
 		nrx,
 		nry,
 	)
-
 	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
 	ram.metaData.RasterX = nrx
 	ram.metaData.RasterY = nry
 	return nil
 }
 
-func (ram *RAMDataset) Transpose(origin Origin) error {
-	if origin == ram.metaData.Origin {
-		return nil
-	}
-	transpose_log(ram.Name(), origin)
-
-	buf := bytes.NewBuffer(make([]byte, 0, len(ram.data)))
-	err := ram.Write(buf, origin, ram.metaData.RasterX)
-	if err != nil {
-		dataset_error(ram.Name(), err)
-		return err
-	}
-
-	ram.data = nil
-	ram.data = buf.Bytes()
-	ram.metaData.GeoTransform = rotateGeoTransform(
-		ram.metaData.GeoTransform,
-		ram.metaData.Origin,
-		origin,
-	)
-
-	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
-	ram.metaData.Origin = origin
-	return nil
-}
-
 func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) Dataset {
-	if samples >= ram.metaData.RasterX {
-		return nil
-	}
 	transform_log(ram.Name(), origin, samples)
 
 	ar := ram.metaData.AspectRatio
