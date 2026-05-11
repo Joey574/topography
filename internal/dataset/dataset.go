@@ -62,7 +62,7 @@ type Dataset interface {
 	LoadStatic(fs fs.File) error
 
 	Transform(origin Origin, samples uint) error
-	TransformCopy(origin Origin, samples uint) Dataset
+	TransformCopy(origin Origin, samples uint) (Dataset, error)
 
 	Copy() Dataset
 

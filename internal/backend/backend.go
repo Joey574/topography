@@ -35,21 +35,23 @@ func NewBackend(ds dataset.Dataset) (*Backend, error) {
 		}
 	}
 
-	// +1 is for inclusive of min and max
-	size := ((MAX_RESOLUTION - MIN_RESOLUTION) / STEP_VALUE) + 1
-	d.ds = make([]dataset.Dataset, size)
-	d.ds[len(d.ds)-1] = ds
+	size := ((MAX_RESOLUTION - MIN_RESOLUTION) / STEP_VALUE)
+	d.ds = make([]dataset.Dataset, 0)
 
 	// create downasampled dataset to handle the different valid requests
-	for i := range len(d.ds) - 1 {
+	for i := range size {
 		res := MIN_RESOLUTION + (i * STEP_VALUE)
-		if tmp := ds.TransformCopy(TARGET_ORIGIN, uint(res)); tmp != nil {
-			d.ds[i] = tmp
-		} else {
-			// if copy returns nil, we just reuse the original dataset
-			d.ds[i] = ds
+
+		tmp, err := ds.TransformCopy(TARGET_ORIGIN, uint(res))
+		if err != nil {
+			return nil, err
+		}
+
+		if tmp != nil {
+			d.ds = append(d.ds, tmp)
 		}
 	}
+	d.ds = append(d.ds, ds)
 
 	debug.FreeOSMemory()
 	log.Logf(initialize_log, ds.Name(), len(d.ds))

@@ -127,35 +127,19 @@ func (ram *RAMDataset) LoadStatic(fs fs.File) error {
 }
 
 func (ram *RAMDataset) Transform(origin Origin, samples uint) error {
-	transform_log(ram.Name(), origin, samples)
-
-	ar := ram.metaData.AspectRatio
-	nrx := uint(samples)
-	nry := uint(float64(samples) / ar)
-	size := nrx * nry * uint(ram.metaData.DataType.Bytes())
-
-	buf := bytes.NewBuffer(make([]byte, 0, size))
-	err := ram.Write(buf, ram.metaData.Origin, samples)
+	tmp, err := ram.TransformCopy(origin, samples)
 	if err != nil {
-		dataset_error(ram.Name(), err)
 		return err
 	}
 
-	ram.data = buf.Bytes()
-	ram.metaData.GeoTransform = scaleGeoTransform(
-		ram.metaData.GeoTransform,
-		ram.metaData.RasterX,
-		ram.metaData.RasterY,
-		nrx,
-		nry,
-	)
-	ram.metaData.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
-	ram.metaData.RasterX = nrx
-	ram.metaData.RasterY = nry
+	if tmp != nil {
+		ram = tmp.(*RAMDataset)
+	}
+
 	return nil
 }
 
-func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) Dataset {
+func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) (Dataset, error) {
 	transform_log(ram.Name(), origin, samples)
 
 	ar := ram.metaData.AspectRatio
@@ -164,10 +148,10 @@ func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) Dataset {
 	size := nrx * nry * uint(ram.metaData.DataType.Bytes())
 
 	buf := bytes.NewBuffer(make([]byte, 0, size))
-	err := ram.Write(buf, ram.metaData.Origin, samples)
+	err := ram.Write(buf, origin, samples)
 	if err != nil {
 		dataset_error(ram.Name(), err)
-		return nil
+		return nil, err
 	}
 
 	meta := ram.metaData
@@ -186,7 +170,7 @@ func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) Dataset {
 		data:     buf.Bytes(),
 		l3_size:  ram.l3_size,
 		metaData: meta,
-	}
+	}, nil
 }
 
 func (ram *RAMDataset) Copy() Dataset {

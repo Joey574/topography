@@ -52,15 +52,15 @@ func (d *DiskDataset) LoadDynamic(path string) error {
 }
 
 func (d *DiskDataset) LoadStatic(fs fs.File) error {
-	return fmt.Errorf("static is not supported for a disk dataset, provide a dataset with the -f flag")
+	return fmt.Errorf("provide a dataset with the -f flag")
 }
 
 func (d *DiskDataset) Transform(origin Origin, samples uint) error {
 	return nil // TODO
 }
 
-func (d *DiskDataset) TransformCopy(origin Origin, samples uint) Dataset {
-	return nil // TODO
+func (d *DiskDataset) TransformCopy(origin Origin, samples uint) (Dataset, error) {
+	return nil, nil // TODO
 }
 
 func (d *DiskDataset) Copy() Dataset {

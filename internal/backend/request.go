@@ -19,14 +19,15 @@ func logResponse(res uint, start time.Time) {
 }
 
 func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
-	defer logResponse(req.Resolution, time.Now())
-
-	idx := (req.Resolution / STEP_VALUE) - 1
-	if idx >= uint(len(d.ds)) {
-		err := fmt.Errorf("expected idx '[0-%d)', got '%d'", len(d.ds), idx)
+	if len(d.ds) == 0 {
+		err := fmt.Errorf("backend not initialized")
 		log.Logf(backend_error, err)
 		return err
 	}
+	defer logResponse(req.Resolution, time.Now())
+
+	idx := (req.Resolution / STEP_VALUE) - 1
+	idx = max(idx, uint(len(d.ds)-1))
 
 	ds := d.ds[idx]
 	resX := req.Resolution
