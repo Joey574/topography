@@ -43,6 +43,7 @@ func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, por
 		}
 	}
 
+	go s.testServer()
 	return s.srv.ListenAndServe()
 }
 
