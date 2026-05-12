@@ -163,6 +163,7 @@ func (ram *RAMDataset) TransformCopy(origin Origin, samples uint) (Dataset, erro
 		nry,
 	)
 	meta.InvGeoTransform = gdal.InvGeoTransform(ram.metaData.GeoTransform)
+	meta.Origin = origin
 	meta.RasterX = nrx
 	meta.RasterY = nry
 
