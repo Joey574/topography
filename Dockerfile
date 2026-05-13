@@ -19,22 +19,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM ghcr.io/osgeo/gdal:alpine-small-latest
 RUN apk add --no-cache libseccomp && \
-    rm -rf \
-        /var/cache/apk/*  \
-        /lib/apk \
-        /usr/bin \
-        /bin \
-        /var \
-        /media \
-        /sbin \
-        /usr/sbin \
-        /usr/share \
-        /usr/include \
-        /usr/lib/bash \
-        /usr/lib/cmake \
-        /usr/lib/engines-3
+   addgroup -S server && \
+   adduser -S server -G server
+USER server
 
-COPY --from=builder --chown=1000:1000 /app/bin/topography /usr/local/bin/topography
-
-USER 1000:1000
+COPY --from=builder --chown=server /app/bin/topography /usr/local/bin/topography
 ENTRYPOINT ["topography", "--server"]

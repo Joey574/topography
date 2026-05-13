@@ -27,6 +27,7 @@ type Args struct {
 	Disk bool `long:"disk"`
 
 	// Server Args
+	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
 	Port      uint16 `short:"p" long:"port" default:"8080"`
 	NoSandbox bool   `long:"no-sandbox"`
 
@@ -96,7 +97,7 @@ func run() {
 	}
 
 	if args.Server {
-		err = server.StartServer(fs, ds, !args.NoSandbox, "0.0.0.0", args.Port)
+		err = server.StartServer(fs, ds, !args.NoSandbox, args.Addr, args.Port)
 		if err != nil {
 			log.Fatalln(err)
 		}
