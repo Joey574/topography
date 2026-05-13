@@ -11,14 +11,14 @@ import (
 	"topography/v2/internal/log"
 )
 
-func (s *server) templateHandler(path string, data any, cache_time int) http.HandlerFunc {
+func (s *server) templateHandler(path string, data any, cache string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", cache_time))
+		w.Header().Set("Cache-Control", cache)
 		if err := s.tmpl.ExecuteTemplate(w, path, data); err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			server_error(err)
@@ -27,14 +27,14 @@ func (s *server) templateHandler(path string, data any, cache_time int) http.Han
 	}
 }
 
-func (s *server) staticHandler(f embed.FS, file string, cache_time int) http.HandlerFunc {
+func (s *server) staticHandler(f embed.FS, file string, cache string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", cache_time))
+		w.Header().Set("Cache-Control", cache)
 		http.ServeFileFS(w, r, f, file)
 	})
 }
@@ -120,7 +120,7 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", TOPO_CACHE))
+		w.Header().Set("Cache-Control", TOPO_CACHE)
 
 		log.Logf(topography_logf, req.Resolution)
 		if err = d.HandleRequest(req, w); err != nil {

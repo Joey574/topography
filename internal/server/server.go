@@ -32,7 +32,7 @@ func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, por
 		// ensure landlock runs first to prevent the need of additional syscalls
 		setLandlockFilters(port)
 
-		bytes, err := fs.ReadFile(seccompFile)
+		bytes, err := fs.ReadFile(SCCMP_FILE)
 		if err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, por
 
 func newServer(f embed.FS, d *backend.Backend, addr string) (*server, error) {
 	s := &server{}
-	s.tmpl = template.Must(template.ParseFS(f, htmlFiles))
+	s.tmpl = template.Must(template.ParseFS(f, HTML_FILES))
 	h, err := s.handler(f, d)
 	if err != nil {
 		return nil, err

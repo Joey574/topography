@@ -133,7 +133,11 @@ func (ram *RAMDataset) Transform(origin Origin, samples uint) error {
 	}
 
 	if tmp != nil {
-		ram = tmp.(*RAMDataset)
+		rm := tmp.(*RAMDataset)
+
+		_ = ram.Close()
+		ram.data = rm.data
+		ram.metaData = rm.metaData
 	}
 
 	return nil

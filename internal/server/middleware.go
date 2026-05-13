@@ -31,6 +31,7 @@ func headerHandler(next http.Handler) http.Handler {
 
 func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// this should be of length 2 in an ip:port format
 		remoteAddr := strings.Split(r.RemoteAddr, ":")
 		if len(remoteAddr) != 2 {
 			// non-fatal server error, just log unexpected result and continue
@@ -38,6 +39,7 @@ func loggingHandler(next http.Handler) http.Handler {
 		} else {
 			remoteIp := remoteAddr[0]
 
+			// if we have cloudflare headers, we log them with the request
 			if ip, cc := cfHeaders(r); net.ParseIP(remoteIp).IsPrivate() && ip != "" && cc != "" {
 				cf_request_log(ip, cc, r.URL.Path, r.Method)
 			} else {
