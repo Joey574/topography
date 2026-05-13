@@ -32,7 +32,7 @@ type Args struct {
 	NoSandbox bool   `long:"no-sandbox"`
 
 	// Render Args
-	Samples    int     `short:"s" long:"samples" default:"16384"`
+	Samples    uint    `short:"s" long:"samples" default:"16384"`
 	Iterations int     `short:"i" long:"iterations" default:"100"`
 	Width      int     `long:"width" default:"800"`
 	Height     int     `long:"height" default:"800"`

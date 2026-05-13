@@ -14,7 +14,7 @@ func Render(
 	ds dataset.Dataset,
 	width int,
 	height int,
-	resolution int,
+	resolution uint,
 	iterations int,
 	latitude float64,
 	longitude float64,
@@ -33,7 +33,7 @@ func Render(
 	size := ds.RasterX() * uint(float64(ds.RasterY())/ds.AspectRatio()) / uint(ds.DataType().Bytes())
 	buf := bytes.NewBuffer(make([]byte, 0, size))
 
-	err = ds.Write(buf, dataset.NW_ORIGIN, uint(resolution))
+	err = ds.Write(buf, dataset.SW_ORIGIN, resolution)
 	if err != nil {
 		log.Logf(render_error, err)
 		return
@@ -51,7 +51,7 @@ func Render(
 		Data:      data,
 		Type:      dtype,
 		Width:     resolution,
-		Height:    int(float64(resolution) / ds.AspectRatio()),
+		Height:    uint(float64(resolution) / ds.AspectRatio()),
 		MaxHeight: 0.075,
 	}
 

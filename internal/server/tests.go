@@ -8,4 +8,5 @@ func (s *server) testServer() {
 
 	// test availability of pages
 	// TODO
+
 }

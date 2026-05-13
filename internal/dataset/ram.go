@@ -96,7 +96,7 @@ func (ram *RAMDataset) LoadStatic(fs fs.File) error {
 		name = info.Name()
 	}
 
-	f, err := os.Create(fmt.Sprintf("/%s/%s", os.TempDir(), name))
+	f, err := os.Create(fmt.Sprintf("%s/%s", os.TempDir(), name))
 	if err != nil {
 		dataset_error(ram.Name(), err)
 		return err
