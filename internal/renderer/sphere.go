@@ -14,8 +14,8 @@ type Sphere struct {
 	Radius    float64
 	Data      []byte
 	Type      dataset.DataType
-	Width     int
-	Height    int
+	Width     uint
+	Height    uint
 	MaxHeight float64
 }
 
@@ -37,8 +37,8 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	py := v * float64(s.Height-1)
 
 	// 3. Bilinear Interpolation for smooth gradients
-	x0 := int(px)
-	y0 := int(py)
+	x0 := uint(px)
+	y0 := uint(py)
 	x1 := min(x0+1, s.Width-1)
 	y1 := min(y0+1, s.Height-1)
 
@@ -49,13 +49,13 @@ func (s *Sphere) Evaluate(p pt.Vector) float64 {
 	var h00, h10, h01, h11 float64
 	switch s.Type {
 	case dataset.FLOAT_32:
-		bpp := 4
+		bpp := uint(4)
 		h00 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp])))
 		h10 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp])))
 		h01 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp])))
 		h11 = float64(*(*float32)(unsafe.Pointer(&s.Data[(y1*s.Width+x1)*bpp])))
 	case dataset.FLOAT_16:
-		bpp := 2
+		bpp := uint(2)
 		h00 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x0)*bpp]))).Float32())
 		h10 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y0*s.Width+x1)*bpp]))).Float32())
 		h01 = float64(float16.Frombits(*(*uint16)(unsafe.Pointer(&s.Data[(y1*s.Width+x0)*bpp]))).Float32())

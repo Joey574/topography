@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 	"topography/v2/internal/dataset"
-	"topography/v2/internal/log"
 )
 
 type Request struct {
@@ -15,13 +14,13 @@ type Request struct {
 }
 
 func logResponse(res uint, start time.Time) {
-	log.Logf(served_log, res, time.Since(start))
+	served_log(res, time.Since(start))
 }
 
 func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 	if len(d.ds) == 0 {
 		err := fmt.Errorf("backend not initialized")
-		log.Logf(backend_error, err)
+		backend_error(err)
 		return err
 	}
 	defer logResponse(req.Resolution, time.Now())
@@ -40,7 +39,7 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 	binary.LittleEndian.PutUint32(header[8:12], uint32(resY))
 	binary.LittleEndian.PutUint32(header[12:16], uint32(resX))
 	if _, err := w.Write(header[:]); err != nil {
-		log.Logf(backend_error, err)
+		backend_error(err)
 		return err
 	}
 

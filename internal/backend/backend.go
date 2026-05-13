@@ -7,7 +7,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"topography/v2/internal/dataset"
-	"topography/v2/internal/log"
 )
 
 const (
@@ -54,7 +53,7 @@ func NewBackend(ds dataset.Dataset) (*Backend, error) {
 	d.ds = append(d.ds, ds)
 
 	debug.FreeOSMemory()
-	log.Logf(initialize_log, ds.Name(), len(d.ds))
+	initialize_log(ds.Name(), len(d.ds))
 	return d, nil
 }
 

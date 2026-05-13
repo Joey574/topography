@@ -1,0 +1,30 @@
+profile topography-apparmor-profile flags=(attach_disconnected,mediate_deleted) {
+  network,
+  signal (receive),
+  signal (send) peer=topography-apparmor-profile,
+
+  /etc/passwd r,
+  /lib/ld-musl-x86_64.so.1 mr,
+  /lib/libc.musl-x86_64.so.1 mr,
+  
+  /usr/lib/*.so* mr,
+
+  /sys/devices/system/ rl,
+  /sys/devices/system/** rl,
+
+  /proc/1/task/ r,
+  /proc/1/task/** r,
+  /proc/meminfo r,
+  /proc/1/cgroup r,
+
+  /run/ r,
+  /run/** r,
+
+  /run/ r,
+  /run/** r,
+
+  /tmp/ r,
+  /tmp/** rw,
+  
+  /usr/local/bin/topography rix,
+}
