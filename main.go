@@ -16,15 +16,16 @@ import (
 //go:embed min/**
 var fs embed.FS
 
-type Args struct {
-	File string `short:"f" long:"file"`
-	Log  string `short:"l" long:"log"`
+const DATASET_PATH = "min/misc/srtm15plus_f16_4096.tif"
 
+type Args struct {
 	Server bool `long:"server"`
 	Render bool `long:"render"`
 
 	// Universal Args
-	Disk bool `long:"disk"`
+	Disk bool   `long:"disk"`
+	File string `short:"f" long:"file"`
+	Log  string `short:"l" long:"log"`
 
 	// Server Args
 	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
@@ -85,7 +86,7 @@ func run() {
 			log.Fatalln(err)
 		}
 	} else {
-		f, err := fs.Open("min/misc/srtm15plus_f16_4096.tif")
+		f, err := fs.Open(DATASET_PATH)
 		if err != nil {
 			log.Fatalln(err)
 		}

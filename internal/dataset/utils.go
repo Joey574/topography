@@ -19,10 +19,12 @@ func parseOrigin(gt [6]float64) Origin {
 	panic("reached unreachable statement")
 }
 
-func toPixel(lat, lon float64, igt [6]float64) (uint, uint) {
+func toPixel(lat, lon float64, md *Metadata) (uint, uint) {
+	igt := md.InvGeoTransform
 	fpx := igt[0] + lon*igt[1] + lat*igt[2]
 	fpy := igt[3] + lon*igt[4] + lat*igt[5]
-	return uint(max(fpx, 0)), uint(max(fpy, 0))
+
+	return min(uint(max(0, fpx)), md.RasterX), min(uint(max(0, fpy)), md.RasterY)
 }
 
 func scaleGeoTransform(gt [6]float64, ox, oy, nx, ny uint) [6]float64 {

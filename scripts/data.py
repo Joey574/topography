@@ -1,10 +1,51 @@
 import numpy as np
 import os
-from osgeo import gdal
+from osgeo import gdal, osr
 import argparse
 
 gdal.UseExceptions()
 gdal.SetConfigOption('GDAL_NUM_THREADS', 'ALL_CPUS')
+
+def get_lat_long_extent(ds):
+    """Calculates the Min/Max Lat and Long for a dataset."""
+    gt = ds.GetGeoTransform()
+    width = ds.RasterXSize
+    height = ds.RasterYSize
+
+    # 1. Get coordinates of the 4 corners in the dataset's native CRS
+    # Coordinates: (Long-ish/X, Lat-ish/Y)
+    # Extent: [Left, Top, Right, Bottom]
+    ext = [
+        gt[0],                     # Top Left X
+        gt[3],                     # Top Left Y
+        gt[0] + width * gt[1],     # Bottom Right X
+        gt[3] + height * gt[5]     # Bottom Right Y
+    ]
+
+    # 2. Setup Coordinate Transformation to WGS84 (Lat/Long)
+    src_srs = osr.SpatialReference()
+    src_srs.ImportFromWkt(ds.GetProjection())
+    
+    tgt_srs = osr.SpatialReference()
+    tgt_srs.ImportFromEPSG(4326) # WGS84
+    
+    # Ensure Axis Mapping is correct for modern GDAL (Long, Lat vs Lat, Long)
+    tgt_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    
+    transform = osr.CoordinateTransformation(src_srs, tgt_srs)
+
+    # 3. Transform corners to Lat/Long
+    # (min_x, max_y) -> Top Left
+    # (max_x, min_y) -> Bottom Right
+    ul = transform.TransformPoint(ext[0], ext[1])
+    lr = transform.TransformPoint(ext[2], ext[3])
+
+    return {
+        "min_lat": min(ul[0], lr[0]),
+        "max_lat": max(ul[0], lr[0]),
+        "min_lon": min(ul[1], lr[1]),
+        "max_lon": max(ul[1], lr[1])
+    }
 
 def create_dataset(original_path, converted_path, use_f16, downsample, dont_compress):
     ds = gdal.Open(original_path)
@@ -50,7 +91,6 @@ def create_dataset(original_path, converted_path, use_f16, downsample, dont_comp
 
     print("--- Dataset Generated ---")
     print(f"New Size: {os.path.getsize(converted_path) / (1024**3)} gb")
-    
 
 def audit_dataset(original_path, converted_path, block_size=4096):
     # Open both datasets
@@ -106,6 +146,8 @@ def audit_dataset(original_path, converted_path, block_size=4096):
         progress = (y + win_y) / y_size * 100
         print(f"\rProgress: {progress:.1f}%", end='')
 
+    ds_orig.Close()
+    ds_conv.Close()
     print("\n" + "-"*25)
     
     # Finalize statistics
@@ -119,15 +161,66 @@ def audit_dataset(original_path, converted_path, block_size=4096):
     print(f"Max Absolute Error: {max_err:.6f} meters")
     print(f"Mean Bias: {mean_bias:.6e} meters")
 
+def dataset_info(files):
+    for f in files:
+        try:
+            ds = gdal.Open(f)
+            if ds is None:
+                print(f"Could not open: {f}")
+                continue
+
+            print(f"\n{'='*40}")
+            print(f"PATH: {f}")
+            print(f"{'='*40}")
+
+            print(f"Size (X, Y):  {ds.RasterXSize} x {ds.RasterYSize}")
+            print(f"Bands:        {ds.RasterCount}")
+
+            # Get Extent
+            try:
+                extent = get_lat_long_extent(ds)
+                print(f"Longitude Range: {extent['min_lon']:.6f} to {extent['max_lon']:.6f}")
+                print(f"Latitude Range:  {extent['min_lat']:.6f} to {extent['max_lat']:.6f}")
+            except Exception as e:
+                pass
+
+            if ds.RasterCount > 0:
+                band = ds.GetRasterBand(1)
+                dtype = gdal.GetDataTypeName(band.DataType)
+                print(f"Data Type:    {dtype}")
+
+            gt = ds.GetGeoTransform()
+            if gt:
+                print(f"Origin:       ({gt[0]:.2f}, {gt[3]:.2f})")
+                print(f"Pixel Size:   ({gt[1]:.2f}, {gt[5]:.2f})")
+
+            proj = ds.GetProjection()
+            if proj:
+                print(f"Projection:   {proj[:60]}...")
+
+        except Exception as e:
+            print(f"Error processing {f}: {e}")
+        
+        finally:
+            ds = None
+
 parser = argparse.ArgumentParser(description="Simple tool to support dataset compression and auditing for Joey574/topography")
 parser.add_argument("-f", "--file", type=str, action='append')
 parser.add_argument("-o", "--output", type=str)
 parser.add_argument("--f16", action="store_true")
 parser.add_argument("--f32", action="store_true")
 parser.add_argument("--audit", action="store_true")
+parser.add_argument("--info", action="store_true")
 parser.add_argument("-d", "--downsample", type=int)
 parser.add_argument("--no-compression", action="store_true")
 args = parser.parse_args()
+
+if args.info:
+    if args.file == None:
+        print("pass the paths of the datasets with -f dataset1")
+        exit(1)
+    dataset_info(args.file)    
+    exit(0)
 
 if args.audit:
     if args.file == None or len(args.file) != 2:

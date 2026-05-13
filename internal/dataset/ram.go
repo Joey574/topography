@@ -248,7 +248,7 @@ func (ram *RAMDataset) At(origin Origin, lat, lon float64) float32 {
 		lon = -lon
 	}
 
-	px, py := toPixel(lat, lon, ram.metaData.InvGeoTransform)
+	px, py := toPixel(lat, lon, &ram.metaData)
 	px = min(px, ram.metaData.RasterX-1)
 	py = min(py, ram.metaData.RasterY-1)
 
