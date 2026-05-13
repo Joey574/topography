@@ -8,23 +8,21 @@ profile topography-apparmor-profile flags=(attach_disconnected,mediate_deleted) 
   /lib/libc.musl-x86_64.so.1 mr,
   
   /usr/lib/*.so* mr,
+  /usr/lib/gdalplugins/ mr,
 
-  /sys/devices/system/ rl,
-  /sys/devices/system/** rl,
+  /usr/share/proj/proj.db r,
+  /usr/share/proj/proj.ini r,
 
-  /proc/1/task/ r,
-  /proc/1/task/** r,
-  /proc/meminfo r,
-  /proc/1/cgroup r,
+  /sys/ rl,
+  /sys/** rl,
+  /proc/ r,
+  /proc/** r,
 
-  /run/ r,
-  /run/** r,
+  /dev/urandom r,
 
-  /run/ r,
-  /run/** r,
 
   /tmp/ r,
   /tmp/** rw,
-  
+
   /usr/local/bin/topography rix,
 }
