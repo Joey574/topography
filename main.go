@@ -34,12 +34,13 @@ type Args struct {
 
 	// Render Args
 	Samples    uint    `short:"s" long:"samples" default:"16384"`
-	Iterations int     `short:"i" long:"iterations" default:"100"`
-	Width      int     `long:"width" default:"800"`
-	Height     int     `long:"height" default:"800"`
+	Iterations uint    `short:"i" long:"iterations" default:"100"`
+	Width      uint    `long:"width" default:"800"`
+	Height     uint    `long:"height" default:"800"`
 	Latitude   float64 `long:"lat" default:"0"`
 	Longitude  float64 `long:"lng" default:"0"`
-	Cores      int     `long:"cores" default:"-1"`
+	Scale      float64 `long:"scale" default:"0.075"`
+	Cores      int     `long:"cores" default:"16"`
 	Output     string  `short:"o" long:"output" default:"./renders/output/"`
 }
 
@@ -103,11 +104,6 @@ func run() {
 			log.Fatalln(err)
 		}
 	} else if args.Render {
-		if args.Cores == -1 {
-			// TODO : get number of cores, runtime.NumCPU()
-			// keeps returning 2 instead of core count :/
-			args.Cores = 16
-		}
 
 		// if the output directory doesn't end in '/', append it
 		if !strings.HasSuffix(args.Output, "/") {
@@ -122,6 +118,7 @@ func run() {
 			args.Iterations,
 			args.Latitude,
 			args.Longitude,
+			args.Scale,
 			args.Cores,
 			args.Output,
 		)

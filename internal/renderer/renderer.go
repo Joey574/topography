@@ -1,3 +1,5 @@
+//go:build !server
+
 package renderer
 
 import (
@@ -12,12 +14,13 @@ import (
 
 func Render(
 	ds dataset.Dataset,
-	width int,
-	height int,
-	resolution uint,
-	iterations int,
-	latitude float64,
-	longitude float64,
+	width,
+	height,
+	resolution,
+	iterations uint,
+	latitude,
+	longitude,
+	scale float64,
 	cores int,
 	dir string,
 ) {
@@ -52,7 +55,7 @@ func Render(
 		Type:      dtype,
 		Width:     resolution,
 		Height:    uint(float64(resolution) / ds.AspectRatio()),
-		MaxHeight: 0.075,
+		MaxHeight: scale,
 	}
 
 	material := pt.GlossyMaterial(pt.HexColor(0x33BCFF), 1.5, pt.Radians(20))
@@ -81,7 +84,7 @@ func Render(
 	scene.Add(light)
 
 	sampler := pt.NewSampler(4, 4)
-	renderer := pt.NewRenderer(&scene, &camera, sampler, width, height)
+	renderer := pt.NewRenderer(&scene, &camera, sampler, int(width), int(height))
 
 	renderer.AdaptiveSamples = 0
 	renderer.SamplesPerPixel = 1
@@ -90,5 +93,5 @@ func Render(
 	renderer.NumCPU = cores
 
 	log.Logf(start_log)
-	renderer.IterativeRender(dir+"out_%03d.png", iterations)
+	renderer.IterativeRender(dir+"out_%03d.png", int(iterations))
 }

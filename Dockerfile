@@ -15,7 +15,7 @@ COPY main.go .
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    ./scripts/build.sh
+    ./scripts/build.sh -t server
 
 FROM ghcr.io/osgeo/gdal:alpine-small-latest
 RUN apk add --no-cache libseccomp && \
