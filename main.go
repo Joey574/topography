@@ -60,16 +60,18 @@ func run() {
 	}
 
 	if (args.Render && args.Server) || (!args.Render && !args.Server) {
-		log.Fatalln("MUST pick --server OR --render")
+		log.Fatalln("MUST pass --server OR --render")
 	}
 
 	if args.Log != "" {
 		f, err := os.OpenFile(args.Log, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
-			log.Fatalln(err)
+			logger.Logf("[!] [MAIN] %v", err)
 		}
 
-		logger.SetLogFile(f)
+		if f != nil {
+			logger.SetLogFile(f)
+		}
 	}
 
 	// build the requested backend
