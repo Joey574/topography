@@ -20,11 +20,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM ghcr.io/osgeo/gdal:alpine-small-latest
 RUN apk add --no-cache libseccomp && \
    addgroup -S server && \
-   adduser -S server -G server && \
-   mkdir -p /var/log/topography && \
-   touch /var/log/topography/log.txt && \
-   chown server /var/log/topography/log.txt
+   adduser -S server -G server
 
 USER server
 COPY --from=builder --chown=server /app/bin/topography /usr/local/bin/topography
-ENTRYPOINT ["topography", "--server", "-l", "/var/log/topography/log.txt"]
+ENTRYPOINT ["topography", "--server"]

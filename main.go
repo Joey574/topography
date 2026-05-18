@@ -23,9 +23,9 @@ type Args struct {
 	Render bool `long:"render"`
 
 	// Universal Args
-	Disk bool   `long:"disk"`
-	File string `short:"f" long:"file"`
-	Log  string `short:"l" long:"log"`
+	Disk bool     `long:"disk"`
+	File string   `short:"f" long:"file"`
+	Log  []string `short:"l" long:"log"`
 
 	// Server Args
 	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
@@ -63,14 +63,19 @@ func run() {
 		log.Fatalln("MUST pass --server OR --render")
 	}
 
-	if args.Log != "" {
-		f, err := os.OpenFile(args.Log, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			logger.Logf("[!] [MAIN] %v", err)
-		}
+	for _, l := range args.Log {
+		if l != "" {
+			f, err := os.OpenFile(l, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				logger.Logf("[!] [MAIN] %v", err)
+			}
 
-		if f != nil {
-			logger.SetLogFile(f)
+			if f != nil {
+				// we defer f.close here as f is expected to remain open for the duration of the program
+				defer f.Close()
+				logger.SetLogFile(f)
+				server.PushRWFile(l)
+			}
 		}
 	}
 

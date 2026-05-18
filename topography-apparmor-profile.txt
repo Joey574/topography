@@ -20,7 +20,6 @@ profile topography-apparmor-profile flags=(attach_disconnected,mediate_deleted) 
 
   /dev/urandom r,
 
-
   /tmp/ r,
   /tmp/** rw,
 
