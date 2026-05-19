@@ -22,7 +22,7 @@ type RAMDataset struct {
 	l3_size uint64
 }
 
-func NewRAMBackend() *RAMDataset {
+func NewRAMDataset() *RAMDataset {
 	ram := &RAMDataset{
 		l3_size: 512 * 1024,
 	}

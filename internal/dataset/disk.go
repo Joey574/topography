@@ -13,7 +13,7 @@ type DiskDataset struct {
 	ds       *gdal.Dataset
 }
 
-func NewDISKBackend() *DiskDataset {
+func NewDISKDataset() *DiskDataset {
 	return &DiskDataset{}
 }
 

@@ -72,18 +72,16 @@ func run() {
 		logger.SetLogFile(f)
 	}
 
-	// build the requested backend
 	var ds dataset.Dataset
 	if args.Disk {
-		ds = dataset.NewDISKBackend()
+		ds = dataset.NewDISKDataset()
 	} else {
-		ds = dataset.NewRAMBackend()
+		ds = dataset.NewRAMDataset()
 	}
 
 	// if a file was provided, we'll attempt to load it dynamically, otherwise we use the embedded .tif
 	if args.File != "" {
-		err = ds.LoadDynamic(args.File)
-		if err != nil {
+		if err = ds.LoadDynamic(args.File); err != nil {
 			log.Fatalln(err)
 		}
 	} else {
@@ -99,8 +97,7 @@ func run() {
 	}
 
 	if args.Server {
-		err = server.StartServer(fs, ds, !args.NoSandbox, args.Addr, args.Port)
-		if err != nil {
+		if err = server.StartServer(fs, ds, !args.NoSandbox, args.Addr, args.Port); err != nil {
 			log.Fatalln(err)
 		}
 	} else if args.Render {
