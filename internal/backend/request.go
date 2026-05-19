@@ -9,6 +9,7 @@ import (
 )
 
 type Request struct {
+	Source     string         `json:"source"`
 	Resolution uint           `json:"resolution"`
 	Origin     dataset.Origin `json:"-"`
 }
@@ -25,10 +26,17 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 	}
 	defer logResponse(req.Resolution, time.Now())
 
-	idx := (req.Resolution / STEP_VALUE) - 1
-	idx = min(idx, uint(len(d.ds)-1))
+	set, ok := d.ds[req.Source]
+	if !ok {
+		err := fmt.Errorf("invalid source")
+		backend_error(err)
+		return err
+	}
 
-	ds := d.ds[idx]
+	idx := (req.Resolution / STEP_VALUE) - 1
+	idx = min(idx, uint(len(set)-1))
+
+	ds := set[idx]
 	resX := req.Resolution
 	resY := uint(float64(req.Resolution) / ds.AspectRatio())
 	verts := resX * resY
@@ -47,13 +55,15 @@ func (d *Backend) HandleRequest(req *Request, w io.Writer) error {
 }
 
 func (d *Backend) At(origin dataset.Origin, lat, lon float64) float32 {
-	if d.ds == nil {
-		return 0
-	}
-	defer logResponse(1, time.Now())
-	return d.ds[len(d.ds)-1].At(origin, lat, lon)
+	// if d.ds == nil {
+	// 	return 0
+	// }
+	// defer logResponse(1, time.Now())
+	// return d.ds[len(d.ds)-1].At(origin, lat, lon)
+	return 0
 }
 
 func (d *Backend) DataType() dataset.DataType {
-	return d.ds[0].DataType()
+	return 0
+	//return d.ds[0].DataType()
 }

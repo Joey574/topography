@@ -16,7 +16,7 @@ type server struct {
 	tmpl *template.Template
 }
 
-func StartServer(fs embed.FS, ds dataset.Dataset, sandbox bool, host string, port uint16) error {
+func StartServer(fs embed.FS, ds []dataset.Dataset, sandbox bool, host string, port uint16) error {
 
 	bck, err := backend.NewBackend(ds)
 	if err != nil {

@@ -21,7 +21,7 @@ FROM ghcr.io/osgeo/gdal:alpine-small-latest
 RUN apk add --no-cache libseccomp && \
    addgroup -S server && \
    adduser -S server -G server
-USER server
 
+USER server
 COPY --from=builder --chown=server /app/bin/topography /usr/local/bin/topography
 ENTRYPOINT ["topography", "--server"]

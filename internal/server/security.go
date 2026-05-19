@@ -8,6 +8,11 @@ import (
 )
 
 var once sync.Once
+var rwfiles []string
+
+func PushRWFile(path string) {
+	rwfiles = append(rwfiles, path)
+}
 
 func setSeccompFilters(syscalls []string) error {
 	var e error
@@ -48,6 +53,8 @@ func setLandlockFilters(port uint16) {
 	rule := landlock.CompositeRule(
 		landlock.RODirs(),
 		landlock.RWDirs(),
+		landlock.ROFiles(),
+		landlock.RWFiles(rwfiles...),
 		landlock.BindTCP(port),
 	)
 

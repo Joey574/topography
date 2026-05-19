@@ -206,13 +206,14 @@ def dataset_info(files):
         finally:
             ds = None
 
-parser = argparse.ArgumentParser(description="Simple tool to support dataset compression and auditing for Joey574/topography")
+parser = argparse.ArgumentParser(description="Simple tool to support dataset compression and auditing for github.com/Joey574/topography")
 parser.add_argument("-f", "--file", type=str, action='append')
 parser.add_argument("-o", "--output", type=str)
 parser.add_argument("--f16", action="store_true")
 parser.add_argument("--f32", action="store_true")
 parser.add_argument("--audit", action="store_true")
 parser.add_argument("--info", action="store_true")
+parser.add_argument("--no-auto-detect", action="store_true", help="Disable auto-detection for --patch")
 parser.add_argument("-d", "--downsample", type=int)
 parser.add_argument("--no-compression", action="store_true")
 args = parser.parse_args()
