@@ -16,7 +16,10 @@ import (
 //go:embed min/**
 var fs embed.FS
 
-const DATASET_PATH = "min/misc/srtm15plus_f16_4096.tif"
+const (
+	EARTH_DS_PATH = "min/misc/srtm15plus_f16_4096.tif"
+	LUNA_DS_PATH  = "min/misc/ldem_f32c_4096.tif"
+)
 
 type Args struct {
 	Server bool `long:"server"`
@@ -46,6 +49,36 @@ type Args struct {
 
 func main() {
 	run()
+}
+
+func newds(disk bool, src string, fallback string) dataset.Dataset {
+	// build the requested backend
+	var ds dataset.Dataset
+	if disk {
+		ds = dataset.NewDISKBackend()
+	} else {
+		ds = dataset.NewRAMBackend()
+	}
+
+	// if a file was provided, we'll attempt to load it dynamically, otherwise we use the embedded .tif
+	if src != "" {
+		err := ds.LoadDynamic(src)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		f, err := fs.Open(fallback)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		if err = ds.LoadStatic(f); err != nil {
+			log.Fatalln(err)
+		}
+		f.Close()
+	}
+
+	return ds
 }
 
 func run() {
@@ -79,30 +112,9 @@ func run() {
 		}
 	}
 
-	// build the requested backend
-	var ds dataset.Dataset
-	if args.Disk {
-		ds = dataset.NewDISKBackend()
-	} else {
-		ds = dataset.NewRAMBackend()
-	}
-
-	// if a file was provided, we'll attempt to load it dynamically, otherwise we use the embedded .tif
-	if args.File != "" {
-		err = ds.LoadDynamic(args.File)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	} else {
-		f, err := fs.Open(DATASET_PATH)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if err = ds.LoadStatic(f); err != nil {
-			log.Fatalln(err)
-		}
-		f.Close()
+	ds := []dataset.Dataset{
+		newds(args.Disk, args.File, EARTH_DS_PATH),
+		newds(args.Disk, args.File, LUNA_DS_PATH),
 	}
 
 	if args.Server {
@@ -118,7 +130,7 @@ func run() {
 		}
 
 		renderer.Render(
-			ds,
+			ds[0],
 			args.Width,
 			args.Height,
 			args.Samples,
