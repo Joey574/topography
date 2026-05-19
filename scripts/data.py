@@ -132,7 +132,7 @@ def audit_dataset(original_path, converted_path, block_size=4096):
             
             # Calculate Difference
             diff = orig_data - conv_data
-            
+
             # Update Ranges
             org_range[0] = min(org_range[0], np.min(orig_data))
             org_range[1] = max(org_range[1], np.max(orig_data))
@@ -176,6 +176,10 @@ def dataset_info(files):
             print(f"\n{'='*40}")
             print(f"PATH: {f}")
             print(f"{'='*40}")
+
+            driver = ds.GetDriver()
+            if driver:
+                print(f"Driver:       {driver.ShortName} ({driver.LongName})")
 
             print(f"Size (X, Y):  {ds.RasterXSize} x {ds.RasterYSize}")
             print(f"Bands:        {ds.RasterCount}")

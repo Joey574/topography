@@ -11,6 +11,7 @@ import (
 type Dataset interface {
 	// returns the name of the dataset for identification
 	Name() string
+	Type() string
 	Source() string
 
 	// returns the underlying metadata of the dataset

@@ -8,7 +8,6 @@ import (
 	"text/template"
 	"time"
 	"topography/v2/internal/backend"
-	"topography/v2/internal/dataset"
 )
 
 type server struct {
@@ -16,14 +15,12 @@ type server struct {
 	tmpl *template.Template
 }
 
-func StartServer(fs embed.FS, ds []dataset.Dataset, sandbox bool, host string, port uint16) error {
-
-	bck, err := backend.NewBackend(ds)
-	if err != nil {
+func StartServer(fs embed.FS, b *backend.Backend, sandbox bool, host string, port uint16) error {
+	if err := b.ProvisionSets(MIN_RESOLUTION, MAX_RESOLUTION, STEP_VALUE, TARGET_ORIGIN); err != nil {
 		return err
 	}
 
-	s, err := newServer(fs, bck, fmt.Sprintf("%s:%d", host, port))
+	s, err := newServer(fs, b, fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return err
 	}
@@ -73,9 +70,9 @@ func newServer(f embed.FS, d *backend.Backend, addr string) (*server, error) {
 // Returns a http.Handler packaged with all the handlers and security protections
 func (s *server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) {
 	indexData := map[string]int{
-		"STEP_VALUE":     backend.STEP_VALUE,
-		"MIN_RESOLUTION": backend.MIN_RESOLUTION,
-		"MAX_RESOLUTION": backend.MAX_RESOLUTION,
+		"STEP_VALUE":     STEP_VALUE,
+		"MIN_RESOLUTION": MIN_RESOLUTION,
+		"MAX_RESOLUTION": MAX_RESOLUTION,
 	}
 
 	// main functionality

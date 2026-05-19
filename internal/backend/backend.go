@@ -1,72 +1,83 @@
 package backend
 
 import (
+	"embed"
 	"encoding/json"
-	"fmt"
 	"io"
-	"runtime/debug"
-	"sync"
+	"strings"
 	"topography/v2/internal/dataset"
 )
 
-const (
-	STEP_VALUE     = 512
-	MIN_RESOLUTION = 512
-	MAX_RESOLUTION = 4096
-
-	TARGET_ORIGIN = dataset.SW_ORIGIN
-)
+type source string
+type name string
 
 type Backend struct {
-	ds map[string][]dataset.Dataset
-	mu sync.RWMutex
+	sets  map[source]*set
+	alias map[name]source
 }
 
-func NewBackend(ds []dataset.Dataset) (*Backend, error) {
-	if ds == nil {
+func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
+	sources := strings.Split(src, ",")
+	if sources == nil {
 		return nil, nil
 	}
 
-	b := &Backend{}
-	size := ((MAX_RESOLUTION - MIN_RESOLUTION) / STEP_VALUE)
-
-	for _, d := range ds {
-		if d.RasterX() < MAX_RESOLUTION {
-			return nil, fmt.Errorf("dataset is too small")
-		}
-
-		if d.RasterX() != MAX_RESOLUTION || d.Origin() != TARGET_ORIGIN {
-			if err := d.Transform(TARGET_ORIGIN, MAX_RESOLUTION); err != nil {
-				return nil, err
-			}
-		}
-
-		set := make([]dataset.Dataset, 0)
-		for i := range size {
-			res := MIN_RESOLUTION + (i * STEP_VALUE)
-
-			tmp, err := d.TransformCopy(TARGET_ORIGIN, uint(res))
-			if err != nil {
-				return nil, err
-			}
-
-			if tmp != nil {
-				set = append(set, tmp)
-			}
-		}
-		set = append(set, d)
-		b.ds[d.Source()] = set
+	b := &Backend{
+		sets:  make(map[source]*set),
+		alias: make(map[name]source),
 	}
 
-	debug.FreeOSMemory()
-	initialize_log("TBD", len(b.ds))
+	for _, s := range sources {
+		split := strings.Split(s, "=")
+		if split == nil {
+			continue
+		}
+
+		n := name("")
+		path := split[0]
+		if len(split) == 2 {
+			n = name(split[0])
+			path = split[1]
+		}
+
+		var ds dataset.Dataset
+		if disk {
+			ds = dataset.NewDISKDataset()
+		} else {
+			ds = dataset.NewRAMDataset()
+		}
+
+		if f, err := fsys.Open(path); f != nil && err == nil {
+			if err = ds.LoadStatic(f); err != nil {
+				return nil, err
+			}
+		} else {
+			if err = ds.LoadDynamic(path); err != nil {
+				return nil, err
+			}
+		}
+
+		dsrc := source(ds.Source())
+		b.alias[n] = dsrc
+		b.sets[dsrc] = newSet(ds)
+	}
+
 	return b, nil
 }
 
+func (b *Backend) ProvisionSets(minr, maxr, step uint, origin dataset.Origin) error {
+	for _, set := range b.sets {
+		if err := set.Provison(minr, maxr, step, origin); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (b *Backend) DumpMetadata(w io.Writer) error {
-	data := make([]dataset.Metadata, 0, len(b.ds))
-	for _, set := range b.ds {
-		data = append(data, set[len(set)-1].Metadata())
+	data := make([]dataset.Metadata, 0, len(b.sets))
+	for _, set := range b.sets {
+		data = append(data, set.Original().Metadata())
 	}
 
 	return json.NewEncoder(w).Encode(data)

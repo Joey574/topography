@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"math"
 	"os"
+	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 
@@ -13,7 +14,7 @@ import (
 )
 
 func Render(
-	ds dataset.Dataset,
+	b *backend.Backend,
 	width,
 	height,
 	resolution,
@@ -32,6 +33,8 @@ func Render(
 
 	log.Logf(initialize_log)
 	scene := pt.Scene{}
+
+	var ds dataset.Dataset // TODO
 
 	size := ds.RasterX() * uint(float64(ds.RasterY())/ds.AspectRatio()) / uint(ds.DataType().Bytes())
 	buf := bytes.NewBuffer(make([]byte, 0, size))

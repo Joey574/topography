@@ -100,9 +100,9 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 		query := r.URL.Query()
 		res, err := strconv.ParseUint(query.Get("res"), 10, 64)
 		if err != nil ||
-			res > backend.MAX_RESOLUTION ||
-			res < backend.MIN_RESOLUTION ||
-			res%backend.STEP_VALUE != 0 {
+			res > MAX_RESOLUTION ||
+			res < MIN_RESOLUTION ||
+			res%STEP_VALUE != 0 {
 
 			if err != nil {
 				server_error(err)

@@ -48,7 +48,8 @@ func NewRAMDataset() *RAMDataset {
 	return ram
 }
 
-func (ram *RAMDataset) Name() string             { return "RAM" }
+func (ram *RAMDataset) Name() string             { return fmt.Sprintf("%s_%s", ram.Type(), ram.Source()) }
+func (ram *RAMDataset) Type() string             { return "RAM" }
 func (ram *RAMDataset) Source() string           { return ram.metaData.Source }
 func (ram *RAMDataset) Metadata() Metadata       { return ram.metaData }
 func (ram *RAMDataset) RasterX() uint            { return ram.metaData.RasterX }
@@ -68,16 +69,12 @@ func (ram *RAMDataset) Size() uint {
 }
 
 func (ram *RAMDataset) LoadDynamic(path string) error {
-	fmt.Println("a")
-
 	ds, err := gdal.Open(path, gdal.ReadOnly)
 	if err != nil {
 		dataset_error(ram.Name(), err)
 		return err
 	}
-
-	defer closeGDAL()
-	defer cleanupGDALDataset(&ds)
+	defer closeGDAL(&ds)
 
 	ram.metaData = NewMetadata(&ds)
 	rx := ram.metaData.RasterX
@@ -98,9 +95,6 @@ func (ram *RAMDataset) LoadStatic(fs fs.File) error {
 	if info, err := fs.Stat(); err == nil {
 		name = info.Name()
 	}
-
-	fmt.Println(os.TempDir())
-	fmt.Println(name)
 
 	f, err := os.Create(fmt.Sprintf("%s/%s", os.TempDir(), name))
 	if err != nil {

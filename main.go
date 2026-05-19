@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	"topography/v2/internal/dataset"
+	"topography/v2/internal/backend"
 	logger "topography/v2/internal/log"
 	"topography/v2/internal/renderer"
 	"topography/v2/internal/server"
@@ -14,21 +14,16 @@ import (
 )
 
 //go:embed min/**
-var fs embed.FS
-
-const (
-	EARTH_DS_PATH = "min/misc/srtm15plus_f16_4096.tif"
-	LUNA_DS_PATH  = "min/misc/ldem_f32c_4096.tif"
-)
+var fsys embed.FS
 
 type Args struct {
 	Server bool `long:"server"`
 	Render bool `long:"render"`
 
 	// Universal Args
-	Disk bool     `long:"disk"`
-	File string   `short:"f" long:"file"`
-	Log  []string `short:"l" long:"log"`
+	Disk    bool     `long:"disk"`
+	Log     []string `short:"l" long:"log"`
+	Sources string   `long:"sources" default:"earth=min/misc/srtm15plus_f16_4096.tif,luna=min/misc/lunarlro_f16c_4096.tif"`
 
 	// Server Args
 	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
@@ -51,36 +46,6 @@ func main() {
 	run()
 }
 
-func newds(disk bool, src string, fallback string) dataset.Dataset {
-	// build the requested backend
-	var ds dataset.Dataset
-	if disk {
-		ds = dataset.NewDISKDataset()
-	} else {
-		ds = dataset.NewRAMDataset()
-	}
-
-	// if a file was provided, we'll attempt to load it dynamically, otherwise we use the embedded .tif
-	if src != "" {
-		err := ds.LoadDynamic(src)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	} else {
-		f, err := fs.Open(fallback)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if err = ds.LoadStatic(f); err != nil {
-			log.Fatalln(err)
-		}
-		f.Close()
-	}
-
-	return ds
-}
-
 func run() {
 	var args Args
 	_, err := flags.Parse(&args)
@@ -100,13 +65,13 @@ func run() {
 	server.PushRWFiles(args.Log)
 	defer logger.Close()
 
-	ds := []dataset.Dataset{
-		newds(args.Disk, args.File, EARTH_DS_PATH),
-		newds(args.Disk, args.File, LUNA_DS_PATH),
+	b, err := backend.NewBackend(fsys, args.Disk, args.Sources)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	if args.Server {
-		if err = server.StartServer(fs, ds, !args.NoSandbox, args.Addr, args.Port); err != nil {
+		if err = server.StartServer(fsys, b, !args.NoSandbox, args.Addr, args.Port); err != nil {
 			log.Fatalln(err)
 		}
 	} else if args.Render {
@@ -117,7 +82,7 @@ func run() {
 		}
 
 		renderer.Render(
-			ds[0],
+			b,
 			args.Width,
 			args.Height,
 			args.Samples,

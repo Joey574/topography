@@ -17,7 +17,8 @@ func NewDISKDataset() *DiskDataset {
 	return &DiskDataset{}
 }
 
-func (d *DiskDataset) Name() string             { return "DISK" }
+func (d *DiskDataset) Name() string             { return fmt.Sprintf("%s_%s", d.Type(), d.Source()) }
+func (d *DiskDataset) Type() string             { return "DISK" }
 func (d *DiskDataset) Source() string           { return d.metaData.Source }
 func (d *DiskDataset) Metadata() Metadata       { return d.metaData }
 func (d *DiskDataset) RasterX() uint            { return d.metaData.RasterX }

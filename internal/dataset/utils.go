@@ -65,13 +65,7 @@ func rotateGeoTransform(gt [6]float64, or, nor Origin) [6]float64 {
 	}
 }
 
-func closeGDAL() {
-	gdal.CleanupOGR()
-	gdal.CleanupSR()
-	gdal.SetCacheMax(0)
-}
-
-func cleanupGDALDataset(ds *gdal.Dataset) {
+func closeGDAL(ds *gdal.Dataset) {
 	ds.FlushCache()
 	ds.Close()
 }
