@@ -55,9 +55,9 @@ func newds(disk bool, src string, fallback string) dataset.Dataset {
 	// build the requested backend
 	var ds dataset.Dataset
 	if disk {
-		ds = dataset.NewDISKBackend()
+		ds = dataset.NewDISKDataset()
 	} else {
-		ds = dataset.NewRAMBackend()
+		ds = dataset.NewRAMDataset()
 	}
 
 	// if a file was provided, we'll attempt to load it dynamically, otherwise we use the embedded .tif
@@ -96,21 +96,9 @@ func run() {
 		log.Fatalln("MUST pass --server OR --render")
 	}
 
-	for _, l := range args.Log {
-		if l != "" {
-			f, err := os.OpenFile(l, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-			if err != nil {
-				logger.Logf("[!] [MAIN] %v", err)
-			}
-
-			if f != nil {
-				// we defer f.close here as f is expected to remain open for the duration of the program
-				defer f.Close()
-				logger.SetLogFile(f)
-				server.PushRWFile(l)
-			}
-		}
-	}
+	logger.PushLogFiles(args.Log)
+	server.PushRWFiles(args.Log)
+	defer logger.Close()
 
 	ds := []dataset.Dataset{
 		newds(args.Disk, args.File, EARTH_DS_PATH),

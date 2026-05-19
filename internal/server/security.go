@@ -10,9 +10,7 @@ import (
 var once sync.Once
 var rwfiles []string
 
-func PushRWFile(path string) {
-	rwfiles = append(rwfiles, path)
-}
+func PushRWFiles(path []string) { rwfiles = append(rwfiles, path...) }
 
 func setSeccompFilters(syscalls []string) error {
 	var e error

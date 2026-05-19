@@ -7,10 +7,23 @@ import (
 	"time"
 )
 
-var ws = []io.Writer{io.Writer(os.Stdout)}
+var ws = []io.WriteCloser{io.WriteCloser(os.Stdout)}
 
-func SetLogFile(nw io.Writer) {
-	ws = append(ws, nw)
+func PushLogFiles(logs []string) {
+	w := make([]io.WriteCloser, 0, len(logs))
+	for i := range logs {
+		if f, _ := os.OpenFile(logs[i], os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600); f != nil {
+			w = append(w, f)
+		}
+	}
+
+	ws = append(ws, w...)
+}
+
+func Close() {
+	for _, w := range ws {
+		w.Close()
+	}
 }
 
 func Logf(format string, a ...any) {
