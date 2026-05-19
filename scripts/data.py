@@ -55,24 +55,27 @@ def create_dataset(original_path, converted_path, use_f16, downsample, dont_comp
         raise ValueError("dataset not found")
 
     kwargs = {
-        "format":"GTiff"
+        "format":"GTiff",
+        "creationOptions":["BIGTIFF=YES"]
     }
 
     if use_f16:
         kwargs["outputType"] = gdal.GDT_Float16
 
-        if not dont_compress:
+        if not dont_compress: # compress
             kwargs["creationOptions"] = [
                 "COMPRESS=ZSTD", "ZSTD_LEVEL=9", "NUM_THREADS=ALL_CPUS",
-                "DISCARD_LSB=1", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+                "DISCARD_LSB=1", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048",
+                "BIGTIFF=YES"
             ]
     else:
         kwargs["outputType"] = gdal.GDT_Float32
 
-        if not dont_compress:
+        if not dont_compress: # compress
             kwargs["creationOptions"] = [
                 "COMPRESS=LERC_ZSTD", "MAX_Z_ERROR=1.0", "DISCARD_LSB=1",
-                "NUM_THREADS=ALL_CPUS", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048"
+                "NUM_THREADS=ALL_CPUS", "TILED=YES", "BLOCKXSIZE=2048", "BLOCKYSIZE=2048",
+                "BIGTIFF=YES"
             ]
 
     if downsample:
@@ -84,7 +87,6 @@ def create_dataset(original_path, converted_path, use_f16, downsample, dont_comp
         kwargs["height"] = target_height
 
         kwargs["resampleAlg"] = gdal.GRA_Average
-
 
     print("Creating dataset...")
     options = gdal.TranslateOptions(**  kwargs)
