@@ -29,8 +29,11 @@
       <div class="control-group">
         <label>Planet: </label>
         <select name="Planet" id="planet-selection">
-          <option value="earth">earth</option>
-          <option value="luna">luna</option>
+          "{{range .Planets}}"
+            <option value="{{.}}">{{.}}</option>
+          "{{else}}""
+            <option disabled>No planets available</option>
+          "{{end}}"
         </select>
       </div>
 
@@ -40,8 +43,8 @@
       </div>
 
       <div class="control-group">
-        <label>Resolution: <span id="resolution-value">{{ .MIN_RESOLUTION }}</span></label>
-        <input type="range" id="resolution-slider" min="{{ .MIN_RESOLUTION }}" max="{{ .MAX_RESOLUTION }}" step="{{ .STEP_VALUE }}" value="{{ .MIN_RESOLUTION }}">
+        <label>Resolution: <span id="resolution-value">{{.Consts.MIN_RESOLUTION}}</span></label>
+        <input type="range" id="resolution-slider" min="{{.Consts.MIN_RESOLUTION}}" max="{{.Consts.MAX_RESOLUTION}}" step="{{.Consts.STEP_VALUE}}" value="{{.Consts.MIN_RESOLUTION}}">
       </div>
 
       <div class="control-group">
