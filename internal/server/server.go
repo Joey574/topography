@@ -40,7 +40,6 @@ func StartServer(fs embed.FS, b *backend.Backend, sandbox bool, host string, por
 		}
 	}
 
-	go s.testServer()
 	return s.srv.ListenAndServe()
 }
 

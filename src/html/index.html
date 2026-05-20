@@ -27,6 +27,14 @@
       <button id="fetch-btn">Fetch Topography Data</button>
 
       <div class="control-group">
+        <label>Planet: </label>
+        <select name="Planet" id="planet-selection">
+          <option value="earth">earth</option>
+          <option value="luna">luna</option>
+        </select>
+      </div>
+
+      <div class="control-group">
         <label>Scale: <span id="displacement-value">0.10</span></label>
         <input type="range" id="displacement-slider" min="0.01" max="1" step="0.01" value="0.10">
       </div>

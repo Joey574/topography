@@ -3,9 +3,7 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
@@ -96,28 +94,22 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 			return
 		}
 
-		// parse out resolution and verify bounds
-		query := r.URL.Query()
-		res, err := strconv.ParseUint(query.Get("res"), 10, 64)
-		if err != nil ||
-			res > MAX_RESOLUTION ||
-			res < MIN_RESOLUTION ||
-			res%STEP_VALUE != 0 {
-
-			if err != nil {
-				server_error(err)
-			} else {
-				server_error(fmt.Errorf("bad resolution %d", res))
-			}
+		q := r.URL.Query()
+		res, err := parseResolution(q)
+		if err != nil {
+			server_error(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 
-		// basic request outline
-		req := &backend.Request{
-			Resolution: uint(res),
-			Origin:     dataset.SW_ORIGIN,
+		src, err := parseSource(q)
+		if err != nil || !d.ValidAlias(src) {
+			server_error(err)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
 		}
+
+		req := backend.NewRequest(res, TARGET_ORIGIN, src)
 
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", TOPO_CACHE)

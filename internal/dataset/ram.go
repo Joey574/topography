@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"unsafe"
 
 	"github.com/jaypipes/ghw"
@@ -48,7 +49,12 @@ func NewRAMDataset() *RAMDataset {
 	return ram
 }
 
-func (ram *RAMDataset) Name() string             { return fmt.Sprintf("%s_%s", ram.Type(), ram.Source()) }
+func (ram *RAMDataset) Name() string {
+	s := ram.Source()
+	n := strings.TrimSuffix(s, filepath.Ext(s))
+	return fmt.Sprintf("%s.%s", ram.Type(), n)
+}
+
 func (ram *RAMDataset) Type() string             { return "RAM" }
 func (ram *RAMDataset) Source() string           { return ram.metaData.Source }
 func (ram *RAMDataset) Metadata() Metadata       { return ram.metaData }

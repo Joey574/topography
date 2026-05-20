@@ -4,13 +4,14 @@ let animationFrameId;
 
 // Settings
 let settings = {
-  wireframe: false,
-  displacementScale: 0.10,
-  resolution: 512,
+  wireframe: document.getElementById('wireframe-toggle').checked,
+  displacementScale: parseFloat(document.getElementById('displacement-slider').value),
+  resolution: parseInt(document.getElementById('resolution-slider').value),
   latResolution: 256,
   lonResolution: 512,
-  autoRotate: false,
-  color: 0x2a5784,
+  autoRotate: document.getElementById('autorotate-toggle').checked,
+  color: document.getElementById('color-picker').value,
+  planet: document.getElementById('planet-selection').value,
 };
 
 const geometryCache = new Map(); // Map<resolution, {geometry, originalPositions}>
@@ -72,6 +73,13 @@ function init() {
   createSphere(settings.latResolution, settings.lonResolution);
   setupEventListeners();
   animate();
+
+  wireframeToggle(settings.wireframe);
+  displacementChange(settings.displacementScale);
+  resolutionChange(settings.resolution);
+  autoRotateToggle(settings.autoRotate);
+  colorChange(settings.color);
+  planetChange(settings.planet);
 }
 
 // ============================================================================
@@ -346,12 +354,12 @@ async function fetchTopographyData() {
   btn.textContent = 'Loading…';
 
   fetch: try {
-    if (backendData && backendData.resolution && settings.resolution == backendData.resolution) {
+    if (backendData && settings.resolution == backendData.resolution && backendData.planet == settings.planet) {
       await new Promise(resolve => setTimeout(resolve, 250));
       break fetch;
     }
 
-    const response = await fetch(`${url}?res=${encodeURIComponent(settings.resolution)}`, {
+    const response = await fetch(`${url}?src=${encodeURIComponent(settings.planet)}&res=${encodeURIComponent(settings.resolution)}`, {
       method: 'GET'
     });
 
@@ -379,6 +387,7 @@ async function fetchTopographyData() {
     backendData = {
       displacements: displacements,
       resolution: settings.resolution,
+      planet: settings.planet,
       latResolution: latPoints - 1,
       lonResolution: lonPoints - 1,
       metadata: {
@@ -406,6 +415,7 @@ function setupEventListeners() {
   window.addEventListener('resize', onWindowResize);
   document.getElementById('fetch-btn').addEventListener('click', fetchTopographyData);
 
+  document.getElementById('planet-selection').addEventListener('change', onPlanetChange);
   document.getElementById('displacement-slider').addEventListener('input', onDisplacementChange);
   document.getElementById('resolution-slider').addEventListener('input', onResolutionChange);
   document.getElementById('wireframe-toggle').addEventListener('change', onWireframeToggle);
@@ -419,8 +429,19 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function onDisplacementChange(e) {
-  settings.displacementScale = parseFloat(e.target.value);
+function onPlanetChange(e) { planetChange(e.target.value); }
+function onDisplacementChange(e) { displacementChange(parseFloat(e.target.value)); }
+function onResolutionChange(e) { resolutionChange(parseInt(e.target.value)); }
+function onWireframeToggle(e) { wireframeToggle(e.target.checked); }
+function onAutoRotateToggle(e) { autoRotateToggle(e.target.checked); }
+function onColorChange(e) { colorChange(e.target.value); }
+
+function planetChange(v) { 
+  settings.planet = v 
+}
+
+function displacementChange(v) { 
+  settings.displacementScale = v;
   document.getElementById('displacement-value').textContent = settings.displacementScale.toFixed(2);
 
   if (sphere) {
@@ -432,14 +453,13 @@ function onDisplacementChange(e) {
   }
 }
 
-function onResolutionChange(e) {
-  const newResolution = parseInt(e.target.value);
-  document.getElementById('resolution-value').textContent = newResolution;
-  settings.resolution = newResolution;
+function resolutionChange(v) {
+  document.getElementById('resolution-value').textContent = v;
+  settings.resolution = v;
 }
 
-function onWireframeToggle(e) {
-  settings.wireframe = e.target.checked;
+function wireframeToggle(v) {
+  settings.wireframe = v;
   if (sphere) {
     const newMat = getOrCreateMaterial(settings.wireframe, settings.color);
     sphere.children.forEach(mesh => {
@@ -453,14 +473,13 @@ function onWireframeToggle(e) {
   }
 }
 
-function onAutoRotateToggle(e) {
-  settings.autoRotate = e.target.checked;
-  controls.autoRotate = settings.autoRotate;
+function autoRotateToggle(v) {
+  settings.autoRotate = v;
+  controls.autoRotate = v;
 }
 
-function onColorChange(e) {
-  const hexStr = e.target.value;
-  settings.color = parseInt(hexStr.replace('#', ''), 16);
+function colorChange(v) {
+  settings.color = parseInt(v.replace('#', ''), 16);
 
   if (sphere) {
     const newMat = getOrCreateMaterial(settings.wireframe, settings.color);

@@ -1,6 +1,9 @@
 package server
 
 import (
+	"fmt"
+	"net/url"
+	"strconv"
 	"sync"
 
 	"github.com/landlock-lsm/go-landlock/landlock"
@@ -69,4 +72,26 @@ func setLandlockFilters(port uint16) {
 			server_error(err)
 		}
 	}
+}
+
+func parseResolution(query url.Values) (uint, error) {
+	// parse out resolution and verify bounds
+	res, err := strconv.ParseUint(query.Get("res"), 10, 64)
+	if err != nil ||
+		res > MAX_RESOLUTION ||
+		res < MIN_RESOLUTION ||
+		res%STEP_VALUE != 0 {
+
+		if err != nil {
+			return 0, err
+		} else {
+			return 0, fmt.Errorf("bad resolution %d", res)
+		}
+	}
+
+	return uint(res), nil
+}
+
+func parseSource(query url.Values) (string, error) {
+	return query.Get("src"), nil
 }
