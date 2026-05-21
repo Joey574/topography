@@ -28,7 +28,6 @@ type Args struct {
 	// notes for completeness
 	// pluto dataset only covers the visible hemisphere
 	// phobos dataset is 699 x 349, upscaling strategies / dynamic max resolution will need to be considered
-	// encaladus --
 
 	// Server Args
 	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
