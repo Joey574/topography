@@ -49,7 +49,7 @@ func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
 	for i := range size {
 		res := minr + (i * step)
 
-		tmp, err := d.TransformCopy(origin, uint(res))
+		tmp, err := d.TransformCopy(origin, res)
 		if err != nil {
 			return err
 		}
