@@ -83,6 +83,7 @@ func (ram *RAMDataset) LoadDynamic(path string) error {
 	defer closeGDAL(&ds)
 
 	ram.metaData = NewMetadata(&ds)
+
 	rx := ram.metaData.RasterX
 	ry := ram.metaData.RasterY
 	ram.data = make([]byte, ram.Size())

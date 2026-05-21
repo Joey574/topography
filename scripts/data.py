@@ -173,6 +173,7 @@ def dataset_info(files):
                 print(f"Could not open: {f}")
                 continue
 
+
             print(f"\n{'='*40}")
             print(f"PATH: {f}")
             print(f"{'='*40}")
@@ -191,6 +192,11 @@ def dataset_info(files):
                 print(f"Latitude Range:  {extent['min_lat']:.6f} to {extent['max_lat']:.6f}")
             except Exception as e:
                 pass
+
+            data = ds.GetRasterBand(1).ReadAsArray(0, 0, ds.RasterXSize, ds.RasterYSize)
+            minv = np.min(data)
+            maxv = np.max(data)
+            print(f"Value Range: [{minv:.6f}, {maxv:.6f}]")
 
             if ds.RasterCount > 0:
                 band = ds.GetRasterBand(1)

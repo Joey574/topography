@@ -23,8 +23,12 @@ type Args struct {
 	// Universal Args
 	Disk    bool     `long:"disk"`
 	Log     []string `short:"l" long:"log"`
-	Sources string   `long:"sources" default:"earth=min/ds/srtm15plus_f16_4096.tif,luna=min/ds/luna_f16c_4096.tif,mars=min/ds/mars_f16c_4096.tif,mercury=min/ds/mercury_f16c_4096.tif"`
-	// TODO : error with encaladus, phobos, and pluto dataset
+	Sources string   `long:"sources" default:"earth=min/ds/srtm15plus_f16_4096.tif,luna=min/ds/luna_f16c_4096.tif,mars=min/ds/mars_f16c_4096.tif,mercury=min/ds/mercury_f16c_4096.tif,pluto=min/ds/pluto_f16c_4096.tif,enceladus=min/ds/enceladus_f16c_4096.tif"`
+
+	// notes for completeness
+	// pluto dataset only covers the visible hemisphere
+	// phobos dataset is 699 x 349, upscaling strategies / dynamic max resolution will need to be considered
+	// encaladus --
 
 	// Server Args
 	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
