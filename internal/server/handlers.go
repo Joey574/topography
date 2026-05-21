@@ -3,7 +3,6 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
@@ -104,14 +103,15 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 		}
 
 		src, err := parseSource(q)
-		if err != nil || !d.ValidAlias(src) {
-			if err == nil {
-				server_error(fmt.Errorf("alias '%s' does not exist", src))
-			} else {
-				server_error(err)
-			}
+		if err != nil {
+			server_error(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
+		}
+
+		if !d.ValidAlias(src) {
+			// TODO : temp patch to handle stale cache requests
+			src = "earth"
 		}
 
 		req := backend.NewRequest(res, TARGET_ORIGIN, src)
