@@ -60,7 +60,7 @@ func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
 	}
 
 	debug.FreeOSMemory()
-	initialize_log(d.Name(), len(s.m))
+	provision_set_log(d.Type(), d.Source(), len(s.m))
 	return nil
 }
 
