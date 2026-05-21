@@ -70,7 +70,7 @@ func (s *set) Dataset(res uint) (dataset.Dataset, bool) {
 }
 
 func (s *set) BestFit(res uint) dataset.Dataset {
-	return nil // TODO
+	return s.Original() // TODO
 }
 
 func (s *set) Original() dataset.Dataset {
