@@ -2,16 +2,23 @@ package backend
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"time"
 	"topography/v2/internal/dataset"
 )
 
 type Request struct {
-	Resolution uint           `json:"resolution"`
+	Resolution uint           `json:"Resolution"`
 	Origin     dataset.Origin `json:"Origin"`
 	Name       string         `json:"Name"`
+}
+
+func NewRequest(resolution uint, origin dataset.Origin, name string) *Request {
+	return &Request{
+		Resolution: resolution,
+		Origin:     origin,
+		Name:       name,
+	}
 }
 
 func logResponse(res uint, start time.Time) {
@@ -20,25 +27,22 @@ func logResponse(res uint, start time.Time) {
 
 func (b *Backend) HandleRequest(req *Request, w io.Writer) error {
 	if len(b.sets) == 0 {
-		err := fmt.Errorf("backend not initialized")
-		backend_error(err)
-		return err
+		backend_error(InitErr)
+		return InitErr
 	}
 	defer logResponse(req.Resolution, time.Now())
 
 	src, ok := b.alias[name(req.Name)]
 	if !ok {
-		err := fmt.Errorf("invalid name")
-		backend_error(err)
-		return err
+		backend_error(AliasErr)
+		return AliasErr
 	}
 
 	set, ok := b.sets[src]
 	if !ok {
 		// should be an impossible path
-		err := fmt.Errorf("invalid source")
-		backend_error(err)
-		return err
+		backend_error(NoSetErr)
+		return NoSetErr
 	}
 
 	var ds dataset.Dataset

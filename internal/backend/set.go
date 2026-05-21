@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"fmt"
 	"runtime/debug"
 	"topography/v2/internal/dataset"
 )
@@ -25,9 +24,9 @@ func newSet(d dataset.Dataset) *set {
 func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
 	if len(s.m) != 1 {
 		if len(s.m) == 0 {
-			return fmt.Errorf("set had not been initialized")
+			return InitErr
 		}
-		return fmt.Errorf("set has already been provisioned")
+		return ProvisionedErr
 	}
 
 	size := ((maxr - minr) / step)
@@ -38,7 +37,7 @@ func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
 	}
 
 	if d.RasterX() < maxr {
-		return fmt.Errorf("dataset is too small")
+		return DSSizeErr
 	}
 
 	if d.RasterX() != maxr || d.Origin() != origin {

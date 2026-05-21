@@ -65,6 +65,25 @@ func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 	return b, nil
 }
 
+func (b *Backend) ValidAlias(alias string) bool {
+	n, a := b.alias[name(alias)]
+	if a {
+		_, b := b.sets[n]
+		return b
+	}
+
+	return false
+}
+
+func (b *Backend) Aliases() []string {
+	s := make([]string, 0, len(b.alias))
+	for k := range b.alias {
+		s = append(s, string(k))
+	}
+
+	return s
+}
+
 func (b *Backend) ProvisionSets(minr, maxr, step uint, origin dataset.Origin) error {
 	for _, set := range b.sets {
 		if err := set.Provison(minr, maxr, step, origin); err != nil {

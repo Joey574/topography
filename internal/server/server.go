@@ -40,7 +40,6 @@ func StartServer(fs embed.FS, b *backend.Backend, sandbox bool, host string, por
 		}
 	}
 
-	go s.testServer()
 	return s.srv.ListenAndServe()
 }
 
@@ -69,15 +68,23 @@ func newServer(f embed.FS, d *backend.Backend, addr string) (*server, error) {
 
 // Returns a http.Handler packaged with all the handlers and security protections
 func (s *server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) {
-	indexData := map[string]int{
-		"STEP_VALUE":     STEP_VALUE,
-		"MIN_RESOLUTION": MIN_RESOLUTION,
-		"MAX_RESOLUTION": MAX_RESOLUTION,
+	type PageData struct {
+		Planets []string
+		Consts  map[string]int
+	}
+
+	data := PageData{
+		Planets: d.Aliases(),
+		Consts: map[string]int{
+			"STEP_VALUE":     STEP_VALUE,
+			"MIN_RESOLUTION": MIN_RESOLUTION,
+			"MAX_RESOLUTION": MAX_RESOLUTION,
+		},
 	}
 
 	// main functionality
 	mux := http.NewServeMux()
-	mux.Handle("GET /{$}", s.templateHandler("index.html", indexData, HTML_CACHE))
+	mux.Handle("GET /{$}", s.templateHandler("index.html", data, HTML_CACHE))
 	mux.Handle("GET /topography", s.topographyHandler(d))
 
 	// static

@@ -27,13 +27,24 @@
       <button id="fetch-btn">Fetch Topography Data</button>
 
       <div class="control-group">
+        <label>Planet: </label>
+        <select name="Planet" id="planet-selection">
+          "{{range .Planets}}"
+            <option value="{{.}}">{{.}}</option>
+          "{{else}}""
+            <option disabled>No planets available</option>
+          "{{end}}"
+        </select>
+      </div>
+
+      <div class="control-group">
         <label>Scale: <span id="displacement-value">0.10</span></label>
         <input type="range" id="displacement-slider" min="0.01" max="1" step="0.01" value="0.10">
       </div>
 
       <div class="control-group">
-        <label>Resolution: <span id="resolution-value">{{ .MIN_RESOLUTION }}</span></label>
-        <input type="range" id="resolution-slider" min="{{ .MIN_RESOLUTION }}" max="{{ .MAX_RESOLUTION }}" step="{{ .STEP_VALUE }}" value="{{ .MIN_RESOLUTION }}">
+        <label>Resolution: <span id="resolution-value">{{.Consts.MIN_RESOLUTION}}</span></label>
+        <input type="range" id="resolution-slider" min="{{.Consts.MIN_RESOLUTION}}" max="{{.Consts.MAX_RESOLUTION}}" step="{{.Consts.STEP_VALUE}}" value="{{.Consts.MIN_RESOLUTION}}">
       </div>
 
       <div class="control-group">
