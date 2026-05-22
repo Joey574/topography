@@ -92,7 +92,6 @@ func (s *server) handler(fsys embed.FS, d *backend.Backend) (http.Handler, error
 		},
 	}
 
-	// main functionality
 	mux := http.NewServeMux()
 
 	// html

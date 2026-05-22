@@ -81,16 +81,13 @@ func setLandlockFilters(port uint16) {
 func parseResolution(query url.Values) (uint, error) {
 	// parse out resolution and verify bounds
 	res, err := strconv.ParseUint(query.Get("res"), 10, 64)
-	if err != nil ||
-		res > MAX_RESOLUTION ||
-		res < MIN_RESOLUTION ||
-		res%STEP_VALUE != 0 {
+	if err != nil {
+		return 0, err
+	}
 
-		if err != nil {
-			return 0, err
-		} else {
-			return 0, fmt.Errorf("bad resolution %d", res)
-		}
+	// verify bounds
+	if res > MAX_RESOLUTION || res < MIN_RESOLUTION || res%STEP_VALUE != 0 {
+		return 0, fmt.Errorf("bad resolution %d", res)
 	}
 
 	return uint(res), nil
