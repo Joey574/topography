@@ -1,9 +1,13 @@
 package server
 
 import (
+	"crypto/sha256"
+	"embed"
+	"encoding/base32"
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/landlock-lsm/go-landlock/landlock"
@@ -92,6 +96,23 @@ func parseResolution(query url.Values) (uint, error) {
 	return uint(res), nil
 }
 
-func parseSource(query url.Values) (string, error) {
+func parseAlias(query url.Values) (string, error) {
 	return query.Get("src"), nil
+}
+
+func generateStaticHashes(fsys embed.FS, files []string) ([]string, error) {
+	hashes := make([]string, 0, len(files))
+
+	for _, f := range files {
+		bytes, err := fsys.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+
+		hash := sha256.Sum256(bytes)
+		enc := base32.HexEncoding.EncodeToString(hash[:])
+		hashes = append(hashes, strings.TrimRight(enc, "="))
+	}
+
+	return hashes, nil
 }
