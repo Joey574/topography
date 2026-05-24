@@ -31,8 +31,8 @@ func Logf(format string, a ...any) {
 		return
 	}
 
-	stamp := fmt.Sprintf("[%s] ", time.Now().Format("2006-01-02 15:04:05"))
+	str := fmt.Sprintf("[%s] %s\n", time.Now().Format("2006-01-02 15:04:05"), format)
 	for _, w := range ws {
-		fmt.Fprintf(w, stamp+format+"\n", a...)
+		fmt.Fprintf(w, str, a...)
 	}
 }
