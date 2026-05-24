@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 OLD_HASH=$(find ./min/* -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum)
 
@@ -16,4 +16,4 @@ cp ./src/html/index.html ./min/html/index.html
 
 NEW_HASH=$(find ./min/* -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum)
 
-printf "[OLD] [%s]\n[NEW] [%s]\n" "${OLD_HASH}" "${NEW_HASH}"
+printf "[OLD] [%s]\n[NEW] [%s]\n" "${OLD_HASH:0:64}" "${NEW_HASH:0:64}"
