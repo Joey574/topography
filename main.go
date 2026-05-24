@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -48,10 +49,12 @@ type Args struct {
 }
 
 func main() {
-	run()
+	if err := run(); err != nil {
+		log.Fatalln(err)
+	}
 }
 
-func run() {
+func run() error {
 	var args Args
 	_, err := flags.Parse(&args)
 	if err != nil {
@@ -59,11 +62,11 @@ func run() {
 			os.Exit(0)
 		}
 
-		log.Fatalln(err)
+		return err
 	}
 
 	if (args.Render && args.Server) || (!args.Render && !args.Server) {
-		log.Fatalln("MUST pass --server OR --render")
+		return fmt.Errorf("MUST pass --server OR --render")
 	}
 
 	logger.PushLogFiles(args.Log)
@@ -72,12 +75,12 @@ func run() {
 
 	b, err := backend.NewBackend(fsys, args.Disk, args.Sources)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	if args.Server {
 		if err = server.StartServer(fsys, b, !args.NoSandbox, args.Addr, args.Port); err != nil {
-			log.Fatalln(err)
+			return err
 		}
 	} else if args.Render {
 
@@ -99,4 +102,6 @@ func run() {
 			args.Output,
 		)
 	}
+
+	return nil
 }
