@@ -3,7 +3,6 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
@@ -60,7 +59,7 @@ func (s *server) heartbeatHandler(d *backend.Backend) http.HandlerFunc {
 		}
 
 		for i := range locs {
-			locs[i].Elevation = d.At(dataset.NW_ORIGIN, locs[i].Latitude, locs[i].Longitude)
+			locs[i].Elevation = d.At("earth", dataset.NW_ORIGIN, locs[i].Latitude, locs[i].Longitude)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -104,23 +103,16 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 		}
 
 		alias, err := parseAlias(q)
-		if err != nil {
+		if err != nil || !d.ValidAlias(alias) {
 			server_error(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 
-		if !d.ValidAlias(alias) {
-			// TODO : temp patch to handle stale cache requests
-			server_error(fmt.Errorf("Invalid Alias: alias='%s'", alias))
-			alias = "earth"
-		}
-
-		req := backend.NewRequest(res, TARGET_ORIGIN, alias)
-
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Cache-Control", TOPO_CACHE)
 
+		req := backend.NewRequest(res, TARGET_ORIGIN, alias)
 		log.Logf(topography_logf, req.Resolution)
 		if err = d.HandleRequest(req, w); err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

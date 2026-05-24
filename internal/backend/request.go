@@ -69,13 +69,21 @@ func (b *Backend) HandleRequest(req *Request, w io.Writer) error {
 	return ds.Write(w, req.Origin, resX)
 }
 
-func (b *Backend) At(origin dataset.Origin, lat, lon float64) float32 {
-	// if d.ds == nil {
-	// 	return 0
-	// }
-	// defer logResponse(1, time.Now())
-	// return d.ds[len(d.ds)-1].At(origin, lat, lon)
-	return 0
+func (b *Backend) At(source string, origin dataset.Origin, lat, lon float64) float32 {
+	defer logResponse(1, time.Now())
+
+	src, ok := b.alias[name(source)]
+	if !ok {
+		return 0
+	}
+
+	set, ok := b.sets[src]
+	if !ok {
+		return 0
+	}
+
+	ds := set.Original()
+	return ds.At(origin, lat, lon)
 }
 
 func (b *Backend) DataType() dataset.DataType {
