@@ -67,10 +67,16 @@ func newServer(f embed.FS, d *backend.Backend, addr string) (*server, error) {
 }
 
 // Returns a http.Handler packaged with all the handlers and security protections
-func (s *server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) {
+func (s *server) handler(fsys embed.FS, d *backend.Backend) (http.Handler, error) {
 	type PageData struct {
 		Planets []string
 		Consts  map[string]int
+		Hashes  map[string]string
+	}
+
+	hashes, err := generateStaticHashes(fsys, []string{"min/css/style.css", "min/js/script.js"})
+	if err != nil {
+		return nil, err
 	}
 
 	data := PageData{
@@ -80,34 +86,37 @@ func (s *server) handler(fs embed.FS, d *backend.Backend) (http.Handler, error) 
 			"MIN_RESOLUTION": MIN_RESOLUTION,
 			"MAX_RESOLUTION": MAX_RESOLUTION,
 		},
+		Hashes: map[string]string{
+			"STYLE_CSS_HASH": hashes[0],
+			"SCRIPT_JS_HASH": hashes[1],
+		},
 	}
 
-	// main functionality
 	mux := http.NewServeMux()
+
+	// html
 	mux.Handle("GET /{$}", s.templateHandler("index.html", data, HTML_CACHE))
-	mux.Handle("GET /topography", s.topographyHandler(d))
+	mux.Handle("GET /tos", s.templateHandler("tos.html", data, HTML_CACHE))
+	mux.Handle("GET /about", s.templateHandler("about.html", data, HTML_CACHE))
+	mux.Handle("GET /privacy", s.templateHandler("privacy.html", data, HTML_CACHE))
+	mux.Handle("GET /cookies", s.templateHandler("cookies.html", data, HTML_CACHE))
+	mux.Handle("GET /contact", s.templateHandler("contact.html", data, HTML_CACHE))
+	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", data, HTML_CACHE))
 
 	// static
-	mux.Handle("GET /static/js/script.js", s.staticHandler(fs, "min/js/script.js", STATIC_CACHE))
-	mux.Handle("GET /static/css/style.css", s.staticHandler(fs, "min/css/style.css", STATIC_CACHE))
+	mux.Handle(fmt.Sprintf("GET /static/css/style.%s.css", hashes[0]), s.staticHandler(fsys, "min/css/style.css", STATIC_CACHE))
+	mux.Handle(fmt.Sprintf("GET /static/js/script.%s.js", hashes[1]), s.staticHandler(fsys, "min/js/script.js", STATIC_CACHE))
 
-	// health & status
+	// backend interation
+	mux.Handle("GET /topography", s.topographyHandler(d))
 	mux.Handle("GET /heartbeat", s.heartbeatHandler(d))
 	mux.Handle("GET /metadata", s.metadataHandler(d))
 
 	// utility
-	mux.Handle("GET /robots.txt", s.staticHandler(fs, "min/misc/robots.txt", DEFAULT_CACHE))
-	mux.Handle("GET /humans.txt", s.staticHandler(fs, "min/misc/humans.txt", DEFAULT_CACHE))
-	mux.Handle("GET /sitemap.xml", s.staticHandler(fs, "min/misc/sitemap.xml", DEFAULT_CACHE))
-	mux.Handle("GET /favicon.ico", s.staticHandler(fs, "min/misc/favicon.svg", DEFAULT_CACHE))
-	mux.Handle("GET /about", s.templateHandler("about.html", nil, HTML_CACHE))
-	mux.Handle("GET /contact", s.templateHandler("contact.html", nil, HTML_CACHE))
-
-	// legal
-	mux.Handle("GET /tos", s.templateHandler("tos.html", nil, HTML_CACHE))
-	mux.Handle("GET /privacy", s.templateHandler("privacy.html", nil, HTML_CACHE))
-	mux.Handle("GET /cookies", s.templateHandler("cookies.html", nil, HTML_CACHE))
-	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", nil, HTML_CACHE))
+	mux.Handle("GET /robots.txt", s.staticHandler(fsys, "min/misc/robots.txt", DEFAULT_CACHE))
+	mux.Handle("GET /humans.txt", s.staticHandler(fsys, "min/misc/humans.txt", DEFAULT_CACHE))
+	mux.Handle("GET /sitemap.xml", s.staticHandler(fsys, "min/misc/sitemap.xml", DEFAULT_CACHE))
+	mux.Handle("GET /favicon.ico", s.staticHandler(fsys, "min/misc/favicon.svg", DEFAULT_CACHE))
 
 	// wrappers, recall the last wrapper applied will be the first one called
 	handler, err := csrfHandler(mux)

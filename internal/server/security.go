@@ -1,9 +1,13 @@
 package server
 
 import (
+	"crypto/sha256"
+	"embed"
+	"encoding/base32"
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/landlock-lsm/go-landlock/landlock"
@@ -77,21 +81,35 @@ func setLandlockFilters(port uint16) {
 func parseResolution(query url.Values) (uint, error) {
 	// parse out resolution and verify bounds
 	res, err := strconv.ParseUint(query.Get("res"), 10, 64)
-	if err != nil ||
-		res > MAX_RESOLUTION ||
-		res < MIN_RESOLUTION ||
-		res%STEP_VALUE != 0 {
+	if err != nil {
+		return 0, err
+	}
 
-		if err != nil {
-			return 0, err
-		} else {
-			return 0, fmt.Errorf("bad resolution %d", res)
-		}
+	// verify bounds
+	if res > MAX_RESOLUTION || res < MIN_RESOLUTION || res%STEP_VALUE != 0 {
+		return 0, fmt.Errorf("bad resolution %d", res)
 	}
 
 	return uint(res), nil
 }
 
-func parseSource(query url.Values) (string, error) {
+func parseAlias(query url.Values) (string, error) {
 	return query.Get("src"), nil
+}
+
+func generateStaticHashes(fsys embed.FS, files []string) ([]string, error) {
+	hashes := make([]string, 0, len(files))
+
+	for _, f := range files {
+		bytes, err := fsys.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+
+		hash := sha256.Sum256(bytes)
+		enc := base32.HexEncoding.EncodeToString(hash[:])
+		hashes = append(hashes, strings.TrimRight(enc, "="))
+	}
+
+	return hashes, nil
 }

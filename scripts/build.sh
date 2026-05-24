@@ -19,7 +19,7 @@ BUILDFLAGS="-tags=netgo,osusergo,${tags} -buildmode=pie -buildvcs=false -trimpat
 
 OUTPUT="./bin/topography"
 
-CGO_ENABLED=1 CGO_CFLAGS="$C_FLAGS" CGO_CPPFLAGS="$CPP_FLAGS" \
+CGO_ENABLED=1 CGO_CFLAGS="$C_FLAGS" CGO_CPPFLAGS="$CPP_FLAGS" GOAMD64=v3 \
     go build \
     $BUILDFLAGS \
     -ldflags="$LDFLAGS" \

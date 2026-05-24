@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Earth Topography Viewer</title>
-  <link rel="stylesheet" href="static/css/style.css">
+  <link rel="stylesheet" href="static/css/style.{{.Hashes.STYLE_CSS_HASH}}.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -29,11 +29,11 @@
       <div class="control-group">
         <label>Planet: </label>
         <select name="Planet" id="planet-selection">
-          "{{range .Planets}}"
+          {{range .Planets}}
             <option value="{{.}}">{{.}}</option>
-          "{{else}}""
+          {{else}}
             <option disabled>No planets available</option>
-          "{{end}}"
+          {{end}}
         </select>
       </div>
 
@@ -101,6 +101,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="static/js/script.js"></script>
+<script src="static/js/script.{{.Hashes.SCRIPT_JS_HASH}}.js"></script>
 </body>
 </html>

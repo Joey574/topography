@@ -28,6 +28,7 @@ type Args struct {
 
 	// notes for completeness
 	// pluto dataset only covers the visible hemisphere
+	// enceladeus did not come with missing data interpolated : TODO
 	// phobos dataset is 699 x 349, upscaling strategies / dynamic max resolution will need to be considered
 
 	// Server Args
