@@ -113,7 +113,7 @@ func generateStaticHashes(fsys embed.FS, files []string) (map[string]string, err
 		ext := filepath.Ext(f)
 		base := filepath.Base(f)
 		name := base[:len(base)-len(ext)]
-		ext = strings.TrimLeft(ext, ".")
+		ext = strings.TrimPrefix(ext, ".")
 
 		key := fmt.Sprintf("%s_%s_HASH", strings.ToUpper(name), strings.ToUpper(ext))
 
