@@ -68,30 +68,12 @@ func newServer(f embed.FS, d *backend.Backend, addr string) (*server, error) {
 
 // Returns a http.Handler packaged with all the handlers and security protections
 func (s *server) handler(fsys embed.FS, d *backend.Backend) (http.Handler, error) {
-	type PageData struct {
-		Planets []string
-		Consts  map[string]int
-		Hashes  map[string]string
-	}
-
 	hashes, err := generateStaticHashes(fsys, []string{"min/css/style.css", "min/js/script.js"})
 	if err != nil {
 		return nil, err
 	}
 
-	data := PageData{
-		Planets: d.Aliases(),
-		Consts: map[string]int{
-			"STEP_VALUE":     STEP_VALUE,
-			"MIN_RESOLUTION": MIN_RESOLUTION,
-			"MAX_RESOLUTION": MAX_RESOLUTION,
-		},
-		Hashes: map[string]string{
-			"STYLE_CSS_HASH": hashes[0],
-			"SCRIPT_JS_HASH": hashes[1],
-		},
-	}
-
+	data := newPageData(d.Aliases(), hashes)
 	mux := http.NewServeMux()
 
 	// html
@@ -104,8 +86,8 @@ func (s *server) handler(fsys embed.FS, d *backend.Backend) (http.Handler, error
 	mux.Handle("GET /accessibility", s.templateHandler("accessibility.html", data, HTML_CACHE))
 
 	// static
-	mux.Handle(fmt.Sprintf("GET /static/css/style.%s.css", hashes[0]), s.staticHandler(fsys, "min/css/style.css", STATIC_CACHE))
-	mux.Handle(fmt.Sprintf("GET /static/js/script.%s.js", hashes[1]), s.staticHandler(fsys, "min/js/script.js", STATIC_CACHE))
+	mux.Handle(fmt.Sprintf("GET /static/css/style.%s.css", hashes["STYLE_CSS_HASH"]), s.staticHandler(fsys, "min/css/style.css", STATIC_CACHE))
+	mux.Handle(fmt.Sprintf("GET /static/js/script.%s.js", hashes["SCRIPT_JS_HASH"]), s.staticHandler(fsys, "min/js/script.js", STATIC_CACHE))
 
 	// backend interation
 	mux.Handle("GET /topography", s.topographyHandler(d))

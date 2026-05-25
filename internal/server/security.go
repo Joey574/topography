@@ -6,6 +6,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,8 +98,8 @@ func parseAlias(query url.Values) (string, error) {
 	return query.Get("src"), nil
 }
 
-func generateStaticHashes(fsys embed.FS, files []string) ([]string, error) {
-	hashes := make([]string, 0, len(files))
+func generateStaticHashes(fsys embed.FS, files []string) (map[string]string, error) {
+	hashes := make(map[string]string)
 
 	for _, f := range files {
 		bytes, err := fsys.ReadFile(f)
@@ -108,7 +109,15 @@ func generateStaticHashes(fsys embed.FS, files []string) ([]string, error) {
 
 		hash := sha256.Sum256(bytes)
 		enc := base32.HexEncoding.EncodeToString(hash[:])
-		hashes = append(hashes, strings.TrimRight(enc, "="))
+
+		ext := filepath.Ext(f)
+		base := filepath.Base(f)
+		name := base[:len(base)-len(ext)]
+		ext = strings.TrimLeft(ext, ".")
+
+		key := fmt.Sprintf("%s_%s_HASH", strings.ToUpper(name), strings.ToUpper(ext))
+
+		hashes[key] = strings.TrimRight(enc, "=")
 	}
 
 	return hashes, nil
