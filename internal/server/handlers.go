@@ -97,15 +97,15 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 		q := r.URL.Query()
 		res, err := parseResolution(q)
 		if err != nil {
-			server_error(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
+			server_error(err)
 			return
 		}
 
 		alias, err := parseAlias(q)
 		if err != nil || !d.ValidAlias(alias) {
-			server_error(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
+			server_error(err)
 			return
 		}
 

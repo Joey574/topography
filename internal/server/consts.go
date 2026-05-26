@@ -6,7 +6,7 @@ const (
 	HTML_FILES = "min/html/*.html"
 	SCCMP_FILE = "min/security/seccomp.txt"
 
-	HTML_CACHE    = "no-cache"                            // no cache -> allow new static files to propogate and not become stale
+	HTML_CACHE    = "public, max-age=3600, immutable"     // 1 hour
 	DEFAULT_CACHE = "public, max-age=3600, immutable"     // 1 hour
 	STATIC_CACHE  = "public, max-age=31536000, immutable" // 1 year
 	TOPO_CACHE    = "public, max-age=31536000, immutable" // 1 year

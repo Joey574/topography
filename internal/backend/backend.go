@@ -8,12 +8,9 @@ import (
 	"topography/v2/internal/dataset"
 )
 
-type source string
-type name string
-
 type Backend struct {
-	sets  map[source]*set
-	alias map[name]source
+	sets  map[string]*set
+	alias map[string]string
 }
 
 func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
@@ -23,8 +20,8 @@ func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 	}
 
 	b := &Backend{
-		sets:  make(map[source]*set),
-		alias: make(map[name]source),
+		sets:  make(map[string]*set),
+		alias: make(map[string]string),
 	}
 
 	for _, s := range sources {
@@ -33,10 +30,10 @@ func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 			continue
 		}
 
-		n := name("")
+		n := ""
 		path := split[0]
 		if len(split) == 2 {
-			n = name(split[0])
+			n = split[0]
 			path = split[1]
 		}
 
@@ -57,7 +54,7 @@ func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 			}
 		}
 
-		dsrc := source(ds.Source())
+		dsrc := ds.Source()
 		b.alias[n] = dsrc
 		b.sets[dsrc] = newSet(ds)
 	}
@@ -66,7 +63,7 @@ func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 }
 
 func (b *Backend) ValidAlias(alias string) bool {
-	n, a := b.alias[name(alias)]
+	n, a := b.alias[alias]
 	if a {
 		_, b := b.sets[n]
 		return b

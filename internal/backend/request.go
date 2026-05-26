@@ -32,7 +32,7 @@ func (b *Backend) HandleRequest(req *Request, w io.Writer) error {
 	}
 	defer logResponse(req.Resolution, time.Now())
 
-	src, ok := b.alias[name(req.Name)]
+	src, ok := b.alias[req.Name]
 	if !ok {
 		backend_error(AliasErr)
 		return AliasErr
@@ -72,7 +72,7 @@ func (b *Backend) HandleRequest(req *Request, w io.Writer) error {
 func (b *Backend) At(source string, origin dataset.Origin, lat, lon float64) float32 {
 	defer logResponse(1, time.Now())
 
-	src, ok := b.alias[name(source)]
+	src, ok := b.alias[source]
 	if !ok {
 		return 0
 	}
@@ -84,9 +84,4 @@ func (b *Backend) At(source string, origin dataset.Origin, lat, lon float64) flo
 
 	ds := set.Original()
 	return ds.At(origin, lat, lon)
-}
-
-func (b *Backend) DataType() dataset.DataType {
-	return 0
-	//return d.ds[0].DataType()
 }

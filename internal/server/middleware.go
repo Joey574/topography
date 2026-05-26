@@ -10,13 +10,13 @@ import (
 
 func csrfHandler(next http.Handler) (http.Handler, error) {
 	csrf := http.NewCrossOriginProtection()
-	if err := csrf.AddTrustedOrigin("http://localhost:8080"); err != nil {
-		return nil, err
+
+	for _, origin := range trustedOrigins {
+		if err := csrf.AddTrustedOrigin(origin); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := csrf.AddTrustedOrigin("https://topoview.org"); err != nil {
-		return nil, err
-	}
 	return csrf.Handler(next), nil
 }
 

@@ -9,6 +9,10 @@ import (
 
 var ws = []io.WriteCloser{io.WriteCloser(os.Stdout)}
 
+const (
+	timeFormat = "2006-01-02 15:04:05"
+)
+
 func PushLogFiles(logs []string) {
 	w := make([]io.WriteCloser, 0, len(logs))
 	for i := range logs {
@@ -31,8 +35,9 @@ func Logf(format string, a ...any) {
 		return
 	}
 
-	str := fmt.Sprintf("[%s] %s\n", time.Now().Format("2006-01-02 15:04:05"), format)
+	log := fmt.Sprintf(fmt.Sprintf("[%s] %s\n", time.Now().Format(timeFormat), format), a...)
+
 	for _, w := range ws {
-		fmt.Fprintf(w, str, a...)
+		fmt.Fprint(w, log)
 	}
 }

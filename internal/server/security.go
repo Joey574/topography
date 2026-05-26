@@ -15,8 +15,15 @@ import (
 	seccomp "github.com/seccomp/libseccomp-golang"
 )
 
-var once sync.Once
-var rwfiles []string
+var (
+	once    sync.Once
+	rwfiles []string
+
+	trustedOrigins = []string{
+		"http://localhost:8080",
+		"https://topoview.org",
+	}
+)
 
 func PushRWFiles(path []string) { rwfiles = append(rwfiles, path...) }
 
