@@ -99,6 +99,7 @@ func (s *server) handler(fsys embed.FS, d *backend.Backend) (http.Handler, error
 	mux.Handle("GET /humans.txt", s.staticHandler(fsys, "min/misc/humans.txt", DEFAULT_CACHE))
 	mux.Handle("GET /sitemap.xml", s.staticHandler(fsys, "min/misc/sitemap.xml", DEFAULT_CACHE))
 	mux.Handle("GET /favicon.ico", s.staticHandler(fsys, "min/misc/favicon.svg", DEFAULT_CACHE))
+	mux.Handle("GET /sources", s.staticHandler(fsys, "min/misc/sources.txt", DEFAULT_CACHE))
 
 	// wrappers, recall the last wrapper applied will be the first one called
 	handler, err := csrfHandler(mux)
