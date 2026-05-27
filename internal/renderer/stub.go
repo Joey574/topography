@@ -2,10 +2,10 @@
 
 package renderer
 
-import "topography/v2/internal/backend"
+import "topography/v2/internal/dataset"
 
 func Render(
-	_ *backend.Backend,
+	_ dataset.Dataset,
 	_,
 	_,
 	_,

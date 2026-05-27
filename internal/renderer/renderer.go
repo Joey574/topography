@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"math"
 	"os"
-	"topography/v2/internal/backend"
 	"topography/v2/internal/dataset"
 	"topography/v2/internal/log"
 
@@ -14,7 +13,7 @@ import (
 )
 
 func Render(
-	b *backend.Backend,
+	ds dataset.Dataset,
 	width,
 	height,
 	resolution,
@@ -34,12 +33,10 @@ func Render(
 	log.Logf(initialize_log)
 	scene := pt.Scene{}
 
-	var ds dataset.Dataset // TODO
-
 	size := ds.RasterX() * uint(float64(ds.RasterY())/ds.AspectRatio()) / uint(ds.DataType().Bytes())
 	buf := bytes.NewBuffer(make([]byte, 0, size))
 
-	err = ds.Write(buf, dataset.SW_ORIGIN, resolution)
+	err = ds.Write(buf, dataset.NW_ORIGIN, resolution)
 	if err != nil {
 		log.Logf(render_error, err)
 		return

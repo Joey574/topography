@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	sccmpOnce  sync.Once
+	scmpOnce   sync.Once
 	lndlckOnce sync.Once
 	rwfiles    []string
 
@@ -31,7 +31,7 @@ func PushRWFiles(path []string) { rwfiles = append(rwfiles, path...) }
 func setSeccompFilters(syscalls []string) error {
 	var e error
 
-	sccmpOnce.Do(func() {
+	scmpOnce.Do(func() {
 		filter, err := seccomp.NewFilter(seccomp.ActKillProcess)
 		if err != nil {
 			e = err

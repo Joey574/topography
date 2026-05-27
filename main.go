@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"topography/v2/internal/backend"
 	logger "topography/v2/internal/log"
@@ -37,6 +36,7 @@ type Args struct {
 	NoSandbox bool   `long:"no-sandbox"`
 
 	// Render Args
+	Source     string  `long:"source" default:"earth"`
 	Samples    uint    `short:"s" long:"samples" default:"16384"`
 	Iterations uint    `short:"i" long:"iterations" default:"100"`
 	Width      uint    `long:"width" default:"800"`
@@ -59,7 +59,7 @@ func run() error {
 	_, err := flags.Parse(&args)
 	if err != nil {
 		if flags.WroteHelp(err) {
-			os.Exit(0)
+			return nil
 		}
 
 		return err
@@ -89,8 +89,13 @@ func run() error {
 			args.Output += "/"
 		}
 
+		ds, ok := b.Dataset(args.Source)
+		if !ok {
+			return fmt.Errorf("invalid source : %s", args.Source)
+		}
+
 		renderer.Render(
-			b,
+			ds,
 			args.Width,
 			args.Height,
 			args.Samples,

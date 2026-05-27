@@ -114,7 +114,7 @@ func (s *server) topographyHandler(d *backend.Backend) http.HandlerFunc {
 
 		req := backend.NewRequest(res, TARGET_ORIGIN, alias)
 		log.Logf(topography_logf, req.Resolution)
-		if err = d.HandleRequest(req, w); err != nil {
+		if err = d.HandleRequest(w, req); err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			server_error(err)
 			return

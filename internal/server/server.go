@@ -29,7 +29,7 @@ func StartServer(fs embed.FS, b *backend.Backend, sandbox bool, host string, por
 		// ensure landlock runs first to prevent the need of additional syscalls
 		setLandlockFilters(port)
 
-		bytes, err := fs.ReadFile(SCCMP_FILE)
+		bytes, err := fs.ReadFile(SCMP_FILE)
 		if err != nil {
 			return err
 		}
