@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	once    sync.Once
-	rwfiles []string
+	sccmpOnce  sync.Once
+	lndlckOnce sync.Once
+	rwfiles    []string
 
 	trustedOrigins = []string{
 		"http://localhost:8080",
@@ -30,7 +31,7 @@ func PushRWFiles(path []string) { rwfiles = append(rwfiles, path...) }
 func setSeccompFilters(syscalls []string) error {
 	var e error
 
-	once.Do(func() {
+	sccmpOnce.Do(func() {
 		filter, err := seccomp.NewFilter(seccomp.ActKillProcess)
 		if err != nil {
 			e = err
@@ -62,28 +63,30 @@ func setSeccompFilters(syscalls []string) error {
 }
 
 func setLandlockFilters(port uint16) {
-	// at this point dataset is already loaded and tmp dir access is unnesecary
-	rule := landlock.CompositeRule(
-		landlock.RODirs(),
-		landlock.RWDirs(),
-		landlock.ROFiles(),
-		landlock.RWFiles(rwfiles...),
-		landlock.BindTCP(port),
-	)
+	lndlckOnce.Do(func() {
+		// at this point dataset is already loaded and tmp dir access is unnesecary
+		rule := landlock.CompositeRule(
+			landlock.RODirs(),
+			landlock.RWDirs(),
+			landlock.ROFiles(),
+			landlock.RWFiles(rwfiles...),
+			landlock.BindTCP(port),
+		)
 
-	if err := landlock.V8.RestrictScoped(); err != nil {
-		server_error(err)
-		if err = landlock.V8.BestEffort().RestrictScoped(); err != nil {
+		if err := landlock.V8.RestrictScoped(); err != nil {
 			server_error(err)
+			if err = landlock.V8.BestEffort().RestrictScoped(); err != nil {
+				server_error(err)
+			}
 		}
-	}
 
-	if err := landlock.V8.Restrict(rule); err != nil {
-		server_error(err)
-		if err = landlock.V8.BestEffort().Restrict(rule); err != nil {
+		if err := landlock.V8.Restrict(rule); err != nil {
 			server_error(err)
+			if err = landlock.V8.BestEffort().Restrict(rule); err != nil {
+				server_error(err)
+			}
 		}
-	}
+	})
 }
 
 func parseResolution(query url.Values) (uint, error) {
