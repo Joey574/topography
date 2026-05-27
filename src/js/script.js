@@ -159,29 +159,12 @@ function getOrCreateMaterial(wireframe, color) {
     // Replace attribute mapping with UV texture lookup and on-the-fly normalization
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
-      `
-      vec3 transformed = vec3(position);
-      
-      // Read raw displacement from the DataTexture
-      float rawDisp = texture2D(uDisplacementMap, uv).r;
-      
-      // Normalize on the GPU: (val - mean) / halfRange
-      float mean = (uDataRange.y + uDataRange.x) / 2.0;
-      float halfRange = (uDataRange.y - uDataRange.x) / 2.0;
-      float normalizedDisp = (halfRange == 0.0) ? 0.0 : (rawDisp - mean) / halfRange;
-      
-      transformed += normal * (normalizedDisp * uDisplacementScale);
-      `
+      'vec3 transformed=vec3(position);float d=texture2D(uDisplacementMap,uv).r;float m=(uDataRange.y+uDataRange.x)/2.0;float h=(uDataRange.y-uDataRange.x)/2.0;transformed+=normal*((h==0.0?0.0:(d-m)/h)*uDisplacementScale);'
     );
 
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_begin>',
-      `
-      vec3 fdx = dFdx(vViewPosition);
-      vec3 fdy = dFdy(vViewPosition);
-      vec3 normal = normalize(cross(fdx, fdy));
-      vec3 geometryNormal = normal;
-      `
+      'vec3 x=dFdx(vViewPosition);vec3 y=dFdy(vViewPosition);vec3 normal=normalize(cross(x,y));vec3 geometryNormal=normal;'
     );
   };
 
