@@ -23,7 +23,8 @@ type Args struct {
 	// Universal Args
 	Disk    bool     `long:"disk"`
 	Log     []string `short:"l" long:"log"`
-	Sources string   `long:"sources" default:"earth=min/ds/srtm15plus_f16_4096.tif,luna=min/ds/luna_f16c_4096.tif,mars=min/ds/mars_f16c_4096.tif,mercury=min/ds/mercury_f16c_4096.tif,pluto=min/ds/pluto_f16c_4096.tif,enceladus=min/ds/enceladus_f16c_4096.tif,venus=min/ds/venus_f16c_4096.tif,charon=min/ds/charon_f16c_4096.tif,ceres=min/ds/ceres_f16c_4096.tif,io=min/ds/io_f16c_4096.tif"`
+	WorkDir string   `long:"work-dir" default:"min/ds/"`
+	Sources string   `long:"sources" default:"earth=srtm15plus_f16_4096.tif,luna=luna_f16c_4096.tif,mars=mars_f16c_4096.tif,mercury=mercury_f16c_4096.tif,pluto=pluto_f16c_4096.tif,enceladus=enceladus_f16c_4096.tif,venus=venus_f16c_4096.tif,charon=charon_f16c_4096.tif,ceres=ceres_f16c_4096.tif,vesta=vesta_f32c_4096.tif"`
 
 	// notes for completeness
 	// pluto dataset only covers the visible hemisphere
@@ -73,7 +74,7 @@ func run() error {
 	server.PushRWFiles(args.Log)
 	defer logger.Close()
 
-	b, err := backend.NewBackend(fsys, args.Disk, args.Sources)
+	b, err := backend.NewBackend(fsys, args.Disk, args.Sources, args.WorkDir)
 	if err != nil {
 		return err
 	}

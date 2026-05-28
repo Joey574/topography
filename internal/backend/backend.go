@@ -15,7 +15,7 @@ type Backend struct {
 	alias map[string]string
 }
 
-func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
+func NewBackend(fsys embed.FS, disk bool, src, workdir string) (*Backend, error) {
 	sources := strings.Split(src, ",")
 	if sources == nil {
 		return nil, nil
@@ -33,10 +33,10 @@ func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 		}
 
 		n := ""
-		path := split[0]
+		path := workdir + split[0]
 		if len(split) == 2 {
 			n = split[0]
-			path = split[1]
+			path = workdir + split[1]
 		}
 
 		var ds dataset.Dataset
