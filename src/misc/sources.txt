@@ -8,3 +8,6 @@ Pluto: https://astrogeology.usgs.gov/search/map/pluto_new_horizons_lorri_mvic_gl
 Charon: https://astrogeology.usgs.gov/search/map/charon_new_horizons_lorri_mvic_global_dem_300m
 Ceres: https://astrogeology.usgs.gov/search/map/ceres_dawn_fc2_hamo_global_dtm_137m
 Phobos: TBD
+Ganymede: https://astrogeology.usgs.gov/search/map/ganymede_voyager_galileo_ssi_global_mosaic_1km
+Europa: https://astrogeology.usgs.gov/search/map/europa_voyager_galileo_ssi_global_mosaic_500m
+Io: https://astrogeology.usgs.gov/search/map/io_voyager_galileo_ssi_global_mosaic_1km
