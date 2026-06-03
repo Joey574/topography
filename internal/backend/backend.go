@@ -106,9 +106,9 @@ func (b *Backend) Dataset(name string) (dataset.Dataset, bool) {
 	return nil, false
 }
 
-func (b *Backend) ProvisionSets(minr, maxr, step uint, origin dataset.Origin) error {
+func (b *Backend) ProvisionSets(minr, maxr, step uint, origin dataset.Origin, versions int) error {
 	for _, set := range b.sets {
-		if err := set.Provison(minr, maxr, step, origin); err != nil {
+		if err := set.Provison(minr, maxr, step, origin, versions); err != nil {
 			return err
 		}
 	}

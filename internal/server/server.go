@@ -15,8 +15,8 @@ type server struct {
 	tmpl *template.Template
 }
 
-func StartServer(fs embed.FS, b *backend.Backend, sandbox bool, host string, port uint16) error {
-	if err := b.ProvisionSets(MIN_RESOLUTION, MAX_RESOLUTION, STEP_VALUE, TARGET_ORIGIN); err != nil {
+func StartServer(fs embed.FS, b *backend.Backend, versions int, sandbox bool, host string, port uint16) error {
+	if err := b.ProvisionSets(MIN_RESOLUTION, MAX_RESOLUTION, STEP_VALUE, TARGET_ORIGIN, versions); err != nil {
 		return err
 	}
 

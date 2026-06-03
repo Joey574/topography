@@ -22,7 +22,7 @@ func newSet(d dataset.Dataset) *set {
 	}
 }
 
-func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
+func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin, versions int) error {
 	if len(s.m) != 1 {
 		if len(s.m) == 0 {
 			return InitErr
@@ -30,13 +30,7 @@ func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
 		return ProvisionedErr
 	}
 
-	size := ((maxr - minr) / step)
-
-	var d dataset.Dataset
-	for _, v := range s.m {
-		d = v
-	}
-
+	d := s.Original()
 	if d.RasterX() < maxr {
 		return DSSizeErr
 	}
@@ -47,8 +41,12 @@ func (s *set) Provison(minr, maxr, step uint, origin dataset.Origin) error {
 		}
 	}
 
-	for i := range size {
-		res := minr + (i * step)
+	size := ((maxr - minr) / step)
+	inc := (max(float64(size+1)/float64(uint(versions)), 1.0))
+
+	// epsilon to prevent cases where value may be close to but not exactly d.RasterX()
+	for i := inc; uint(i+1e-12)*step < d.RasterX(); i += inc {
+		res := uint(i) * step
 
 		tmp, err := d.TransformCopy(origin, res)
 		if err != nil {

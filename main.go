@@ -34,6 +34,7 @@ type Args struct {
 	Addr      string `short:"a" long:"addr" default:"0.0.0.0"`
 	Port      uint16 `short:"p" long:"port" default:"8080"`
 	NoSandbox bool   `long:"no-sandbox"`
+	Versions  int    `long:"versions" default:"-1"`
 
 	// Render Args
 	Source     string  `long:"source" default:"earth"`
@@ -79,7 +80,7 @@ func run() error {
 	}
 
 	if args.Server {
-		if err = server.StartServer(fsys, b, !args.NoSandbox, args.Addr, args.Port); err != nil {
+		if err = server.StartServer(fsys, b, args.Versions, !args.NoSandbox, args.Addr, args.Port); err != nil {
 			return err
 		}
 	} else if args.Render {
