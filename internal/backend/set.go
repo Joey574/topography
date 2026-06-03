@@ -2,6 +2,7 @@ package backend
 
 import (
 	"runtime/debug"
+	"slices"
 	"topography/v2/internal/dataset"
 )
 
@@ -70,9 +71,34 @@ func (s *set) Dataset(res uint) (dataset.Dataset, bool) {
 }
 
 func (s *set) BestFit(res uint) dataset.Dataset {
-	return s.Original() // TODO
+	ks := s.keys()
+
+	// find the smallest dataset that has a resolution >= requested
+	// makes the assumption that touching less memory will be more performant
+	for _, k := range ks {
+		if k >= res {
+			// should never fail, only used here as sanity check
+			if _, ok := s.m[k]; ok {
+				return s.m[k]
+			}
+		}
+	}
+
+	// default to original dataset
+	return s.Original()
 }
 
 func (s *set) Original() dataset.Dataset {
 	return s.m[s.original]
+}
+
+// returns the sorted set of resolution values used as keys in the map
+func (s *set) keys() []uint {
+	ks := make([]uint, 0, len(s.m))
+	for k := range s.m {
+		ks = append(ks, k)
+	}
+
+	slices.Sort(ks)
+	return ks
 }

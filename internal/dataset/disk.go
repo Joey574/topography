@@ -74,6 +74,7 @@ func (d *DiskDataset) TransformCopy(origin Origin, samples uint) (Dataset, error
 
 func (d *DiskDataset) Copy() Dataset {
 	// as of now disk copying proves too expensive and complex to justify implementing it
+	// especially since disk currently only implements read operations
 	return nil
 }
 

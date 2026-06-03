@@ -23,12 +23,11 @@ type Args struct {
 	// Universal Args
 	Disk    bool     `long:"disk"`
 	Log     []string `short:"l" long:"log"`
-	WorkDir string   `long:"work-dir" default:"min/ds/"`
 	Sources string   `long:"sources" default:"earth=srtm15plus_f16_4096.tif,luna=luna_f16c_4096.tif,mars=mars_f16c_4096.tif,mercury=mercury_f16c_4096.tif,pluto=pluto_f16c_4096.tif,enceladus=enceladus_f16c_4096.tif,venus=venus_f16c_4096.tif,charon=charon_f16c_4096.tif,ceres=ceres_f16c_4096.tif,vesta=vesta_f32c_4096.tif"`
 
 	// notes for completeness
 	// pluto dataset only covers the visible hemisphere
-	// enceladeus did not come with missing data interpolated : TODO
+	// charon dataset only coverrs the visible hemisphere
 	// phobos dataset is 699 x 349, upscaling strategies / dynamic max resolution will need to be considered
 
 	// Server Args
@@ -74,7 +73,7 @@ func run() error {
 	server.PushRWFiles(args.Log)
 	defer logger.Close()
 
-	b, err := backend.NewBackend(fsys, args.Disk, args.Sources, args.WorkDir)
+	b, err := backend.NewBackend(fsys, args.Disk, args.Sources)
 	if err != nil {
 		return err
 	}

@@ -5,9 +5,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
+	"os"
 	"strings"
 	"time"
 	"topography/v2/internal/dataset"
+)
+
+const (
+	embeddedPath = "min/ds/"
 )
 
 type Backend struct {
@@ -15,7 +20,7 @@ type Backend struct {
 	alias map[string]string
 }
 
-func NewBackend(fsys embed.FS, disk bool, src, workdir string) (*Backend, error) {
+func NewBackend(fsys embed.FS, disk bool, src string) (*Backend, error) {
 	sources := strings.Split(src, ",")
 	if sources == nil {
 		return nil, nil
@@ -33,10 +38,10 @@ func NewBackend(fsys embed.FS, disk bool, src, workdir string) (*Backend, error)
 		}
 
 		n := ""
-		path := workdir + split[0]
+		path := split[0]
 		if len(split) == 2 {
 			n = split[0]
-			path = workdir + split[1]
+			path = split[1]
 		}
 
 		var ds dataset.Dataset
@@ -50,8 +55,16 @@ func NewBackend(fsys embed.FS, disk bool, src, workdir string) (*Backend, error)
 			if err = ds.LoadStatic(f); err != nil {
 				return nil, err
 			}
-		} else {
+		} else if f, err := fsys.Open(embeddedPath + path); f != nil && err == nil {
+			if err = ds.LoadStatic(f); err != nil {
+				return nil, err
+			}
+		} else if os.Stat(path); err == nil {
 			if err = ds.LoadDynamic(path); err != nil {
+				return nil, err
+			}
+		} else {
+			if err = ds.LoadDynamic(embeddedPath + path); err != nil {
 				return nil, err
 			}
 		}
